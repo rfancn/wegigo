@@ -1,0 +1,9 @@
+# build stage
+FROM golang:1.8 AS build-env
+ADD . /go/src/github.com/rfancn/wegigo
+RUN cd /go/src/github.com/rfancn/wegigo && make
+
+# final stage
+FROM alpine
+COPY --from=build-env /go/src/github.com/rfancn/wegigo/wegigo /
+CMD ["wegigo"]
