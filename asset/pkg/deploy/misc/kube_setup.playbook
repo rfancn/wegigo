@@ -1,0 +1,39 @@
+---
+- hosts: all
+  any_errors_fatal: true
+  gather_facts: true
+  roles:
+    - {role: ensure_kubernetes}
+  tags: ensure_kube
+
+- hosts: master
+  any_errors_fatal: true
+  gather_facts: true
+  roles:
+    - {role: configure_kubernetes, kube_node_role: "master"}
+  tags: setup_master
+
+- hosts: master
+  any_errors_fatal: true
+  gather_facts: false
+  tasks:
+    - shell: kubectl cluster-info | head -1 | grep -oE "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+"
+      register: result_master_connection
+    - shell: kubeadm token list | awk 'NR==2{print $1}'
+      register: result_master_token
+    - debug: msg="|{{result_master_connection.stdout}}|{{result_master_token.stdout}}|"
+  tags: get_master_info
+
+- hosts: master_member
+  any_errors_fatal: true
+  gather_facts: true
+  roles:
+    - {role: configure_kubernetes, kube_node_role: "master_member"}
+  tags: setup_master_member
+
+- hosts: node
+  any_errors_fatal: true
+  gather_facts: true
+  roles:
+    - {role: configure_kubernetes, kube_node_role: "node"}
+  tags: setup_node

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-sm-8 col-sm-offset-2">
+        <form>
+            <h2 class="text-center">Deploy Progress</h2>
+            <small id="countdown"></small><small id="hiddenCountdown"></small>
+            <div class="form-group">
+                <div class="progress progress-striped active" style="margin-bottom:0;">
+                    <div id="progress-bar" class="progress-bar" style="width:0%;"></div>
+                </div>
+            </div>
+            <div class="well" style="max-height: 300px;overflow: auto;">
+                <ul id="check-list-box" class="list-group checked-list-box">
+                    <li v-for="t in tasks"  class="list-group-item" style="cursor: pointer;">
+                        <span class="state-icon glyphicon" v-bind:class="{'glyphicon-check': t.isChecked, 'glyphicon-unchecked': !t.isChecked}"></span>[[ t.name ]]
+                    </li>
+                </ul>
+            </div>
+            <div class="form-group">
+                <textarea class="form-control" id="deployDetail" rows="10"></textarea>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_css %}
+<link href="{{ PKG_ROOT }}/css/deploy.css" rel="stylesheet">
+{% endblock %}
+
+{% block custom_js %}
+<script src="{{ VENDOR_ROOT }}/jquery/jquery.min.js"></script>
+<script src="{{ VENDOR_ROOT }}/bootstrap/bootstrap.min.js"></script>
+<script src="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.js"></script>
+<script src="https://cdn.bootcss.com/jquery.countdown/2.2.0/jquery.countdown.min.js"></script>
+<script src="{{ VENDOR_ROOT }}/vue/vue.min.js"></script>
+<script>
+var detail = $('#deployDetail');
+var progressBar = $('#progress-bar');
+
+var vueChecklist = new Vue({
+    el: "#check-list-box",
+    delimiters: ["[[", "]]"],
+    data: {
+        tasks: [
+            {name: 'Install kubernetes on all nodes', color:'primary', isChecked: false},
+            {name: 'Setup kubernetes master node', color:'secondary', isChecked: false},
+            {name: 'Setup kubernetes worker node', color:'success', isChecked: false},
+            {name: 'step4', color:'danger', isChecked: false},
+            {name: 'step5', color:'warning', isChecked: false},
+        ],
+    },
+});
+
+function autoScrollDown(){
+    if(detail.length){
+        detail.scrollTop(detail[0].scrollHeight - detail.height());
+    }
+    if(!reachToBottom()){
+        setTimeout(autoScrollDown, 1000);
+    }
+}
+
+
+
+function reachToBottom(){
+    if ((detail.scrollTop() + detail.height() - detail[0].scrollHeight) <20) {
+        console.log('reach to bottom of textarea!');
+        return true;
+    }
+    console.log("not reach to bottom");
+    return false;
+}
+
+function runDeploy(){
+    try{
+        var wsuri = "wss://" + document.location.host + "/deploy/run";
+        var socket = new WebSocket(wsuri);
+        socket.onopen = function(){
+            console.log('Socket Status: '+socket.readyState+' (open)');
+        }
+
+        socket.onmessage = function(msg) {
+            //check if we encounter the percentage and desc line
+            //it should have format: ===12:xxx===
+            if (msg.data.startsWith("===") && msg.data.endsWith("===")) {
+                var descBeginIndex = msg.data.indexOf(":");
+                var descEndIndex = msg.data.lastIndexOf("===");
+                var percentage = msg.data.slice(3, descBeginIndex) + "%";
+                var desc = msg.data.slice(descBeginIndex+1, descEndIndex)
+                console.log(percentage);
+                console.log(desc);
+                for(i=0; i<vueChecklist.tasks.length; i++){
+                    t = vueChecklist.tasks[i];
+                    if(t.name == desc){
+                        t.isChecked = true;
+                        break;
+                    }
+                }
+
+                progressBar.width(percentage);
+
+            }
+            detail.append(msg.data + "\n");
+            //scroll down to bottom of text area
+            detail.scrollTop(detail[0].scrollHeight);
+        }
+
+        socket.onclose = function(){
+            console.log('Socket Status: '+socket.readyState+' (Closed)');
+        }
+    } catch(exception){
+        alertify.alert("Error"+exception);
+    }
+}
+
+$(document).ready(function(){
+    if(!("WebSocket" in window)){
+        alertify.alert("Oh no, you need a browser that supports WebSockets");
+        return;
+    }
+
+    var startDelay = 2;
+    var futureTime = (new Date()).getTime() + startDelay * 1000;
+    $('#countdown').countdown(futureTime, {elapse: true})
+            .on('update.countdown', function(e) {
+                if (e.elapsed) {
+                    $(this).html("Elapsed: "+ e.strftime('%M min %S Seconds'));
+                }else{
+                    $(this).html("Will start in "+ e.strftime('%S') + " Seconds");
+                }
+            });
+    $('#hiddenCountdown').countdown(futureTime)
+            .on('finish.countdown', function(e) {
+                console.log("start deploy");
+                runDeploy();
+            });
+});
+</script>
+{% endblock %}

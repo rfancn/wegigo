@@ -1,0 +1,52 @@
+html:
+  - form: id="form-wechat" data-parsley-validate
+    fieldset:
+      - input: >
+               help-label="服务器地址(URL)" v-model="url" type=text placeholder="必须以http://或https://开头，分别支持80端口和443端口" required
+               data-parsley-trigger="focusout" data-parsley-type="url" data-parsley-pattern="^(http|https).*"
+      - input: >
+               help-label="令牌(Token)" v-model="token" type="text" placeholder="必须为英文或数字，长度为3-32字符" required
+               data-parsley-trigger="focusout" data-parsley-type="alphanum" data-parsley-length="[3,32]"
+      - input: >
+               help-label="消息加解密密钥(EncodingAESKey)" v-model="key" type="text" placeholder="消息加密密钥由43位字符组成，可随机修改，字符范围为A-Z，a-z，0-9" required
+               data-parsley-trigger="focusout" data-parsley-type="alphanum" data-parsley-length="[43,43]"
+      - radio:  help-label="消息加解密类型"
+        items:
+          - item: name="msg_encrypt_method" label="明文模式" value="clear" v-model="method"
+          - item: name="msg_encrypt_method" label="兼容模式" value="compatible" v-model="method"
+          - item: name="msg_encrypt_method" label="安全模式（推荐）" value="secure" v-model="method"
+
+javascript:
+  - inline: |
+      //Wechat Media Platform config
+      var vueWechat = new Vue({
+          el: '#form-wechat',
+          data:{
+              'url': '',
+              'token': '',
+              'key':'',
+              'method': 'secure',
+          },
+      });
+
+      function leaveStep1(stepDirection) {
+        console.log("leave step2 step_wechat");
+        if(stepDirection === "forward"){
+           var isValidated = $("#form-wechat").parsley().validate();
+           if (!isValidated) {
+              alertify.alert("You need correct the errors marked as red to continue!");
+              return false;
+           }
+        }
+
+        return true;
+      }
+
+      function showStep1(stepDirection) {
+        console.log("show step2 step_wechat");
+        return true;
+      }
+
+
+
+

@@ -1,0 +1,12 @@
+[all]
+{{- range .AllNodes }}
+{{ .Host }}:{{ .Port}} ansible_ssh_user={{ .Username }} ansible_ssh_pass={{ .Password }}
+{{ end }}
+[master]
+{{- range .MasterNodes }}
+{{ .Host }}:{{ .Port}} ansible_ssh_user={{ .Username }} ansible_ssh_pass={{ .Password }}
+{{ end }}
+[node]
+{{- range .WorkerNodes }}
+{{ .Host }}:{{ .Port}} ansible_ssh_user={{ .Username }} ansible_ssh_pass={{ .Password }}
+{{ end }}

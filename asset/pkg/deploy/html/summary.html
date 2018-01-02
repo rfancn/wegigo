@@ -1,0 +1,52 @@
+<div class="panel panel-info">
+    <div class="panel-heading">
+        <h3 class="panel-title">Wegigo Deployment Summary</h3>
+    </div>
+    <div class="panel-body">
+        <div id="summary">
+        <dl class="row">
+            <dt class="col-sm-3 text-right">General Configuration:</dt>
+            <dd class="col-sm-9">
+                <ul id="general-summary">
+                    <li v-for="(value, key) in generalConfig">
+                        [[ key ]]: [[ value ]]
+                    </li>
+                </ul>
+            </dd>
+        </dl>
+        <hr>
+        <dl class="row">
+            <dt class="col-sm-3 text-right">Wechat Server Configuration:</dt>
+            <dd class="col-sm-9">
+                <ul id="wechat-summary">
+                    <li v-for="(value, key) in wechatConfig">
+                    [[ key ]]: [[ value ]]
+                    </li>
+                </ul>
+            </dd>
+        </dl>
+        <hr>
+        <dl class="row">
+            <dt class="col-sm-3 text-right">Master Nodes:</dt>
+            <dd class="col-sm-9">
+                <ul>
+                    <li v-for="node in masterNodes">
+                        [[ node ]]
+                    </li>
+                </ul>
+            </dd>
+        </dl>
+        <hr>
+        <dl class="row">
+            <dt class="col-sm-3 text-right">Worker Nodes:</dt>
+            <dd class="col-sm-9">
+                <ul>
+                    <li v-for="node in workerNodes">
+                        [[ node ]]
+                    </li>
+                </ul>
+            </dd>
+        </dl>
+        </div>
+    </div>
+</div>

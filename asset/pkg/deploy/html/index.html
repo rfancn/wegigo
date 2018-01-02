@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header clearfix">
+    <h3 class="text-muted">Wegigo Deploy Wizard</h3>
+</div>
+<div id="smartwizard">
+    <ul>
+        <li><a href="#step1">Step 1<br /><small>General Configuration</small></a></li>
+        <li><a href="#step2">Step 2<br /><small>Wechat Server Configuration</small></a></li>
+        <li><a href="#step3">Step 3<br /><small>Deploy Servers Configuration</small></a></li>
+        <li><a href="#step4">Step 4<br /><small>Deployment Summary</small></a></li>
+    </ul>
+    <div>
+        <div id="step1">{{ wizard.general|safe }}</div>
+        <div id="step2">{{ wizard.wechat|safe }}</div>
+        <div id="step3">{{ wizard.server|safe }}</div>
+        <div id="step4">{% include "summary.html" %}</div>
+    </div>
+</div>
+
+{{ modal.html|safe }}
+{% endblock %}
+
+{% block custom_css %}
+    <link href="{{ VENDOR_ROOT }}/smartwizard/smart_wizard.min.css" rel="stylesheet">
+    <link href="{{ VENDOR_ROOT }}/datatables/dataTables.bootstrap.min.css" rel="stylesheet">
+    <link href="{{ VENDOR_ROOT }}/datatables/select.dataTables.min.css" rel="stylesheet">
+    <link href="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.css" rel="stylesheet">
+    <link href="{{ PKG_ROOT }}/css/main.css" rel="stylesheet">
+{% endblock %}
+
+{% block custom_js %}
+    <script src="{{ VENDOR_ROOT }}/jquery/jquery.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/bootstrap/bootstrap.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/vue/vue.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/smartwizard/jquery.smartWizard.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/parsley.js/parsley.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/parsley.js/zh_cn.js"></script>
+    <script src="{{ VENDOR_ROOT }}/datatables/jquery.dataTables.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/datatables/dataTables.bootstrap.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/datatables/dataTables.select.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.js"></script>
+    <script src="{{ PKG_ROOT }}/js/ajax-progress.js"></script>
+    {{ wizard.externalJs|safe }}
+    <script>
+    {{ wizard.inlineJs|safe }}
+    {{ modal.inlineJs|safe }}
+    </script>
+    <script src="{{ PKG_ROOT }}/js/main.js"></script>
+    <script src="{{ VENDOR_ROOT }}/jquery-loading-overlay/loadingoverlay.min.js"></script>
+{% endblock %}

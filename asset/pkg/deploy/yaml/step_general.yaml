@@ -1,0 +1,26 @@
+html:
+  - form: id="form-general" data-parsley-validate
+    fieldset:
+      - radio: help-label="wegigo Server调试"
+        items:
+          - item: name="debug" label="Enable" value="enabled" v-model="debug"
+          - item: name="debug" label="Disable" value="disabled" v-model="debug"
+javascript:
+  - inline: |
+      // general config
+      var vueGeneral = new Vue({
+          el: '#form-general',
+          data:{
+              'debug': 'enabled',
+          }
+      });
+
+      function leaveStep0(stepDirection) {
+        console.log("leave step1 step_general");
+        return true;
+      }
+
+      function showStep0(stepDirection) {
+        console.log("show step1 step_general");
+        return true;
+      }

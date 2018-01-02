@@ -1,0 +1,23 @@
+html:
+  - form: id="form2" data-parsley-validate
+    fieldset:
+      # http://kombu.readthedocs.io/en/master/userguide/connections.html#connection-urls
+      - radio: help-label="Message Transport Broker"
+        items:
+          - item: name="broker" label="AMQP" value="rabbitmq" v-model="broker"
+          - item: name="broker" label="Redis" value="redis" v-model="broker"
+      - radio: help-label="Result Backend"
+        items:
+          - item: name="backend" label="Redis" value="redis" v-model="backend"
+          - item: name="backend" label="RPC" value="rabbitmq" v-model="backend"
+
+javascript:
+  - inline: |
+      // vueCelery config
+      var vueCelery = new Vue({
+          el: '#form2',
+          data:{
+            'broker': 'rabbitmq',
+            'backend': 'redis',
+          }
+      });

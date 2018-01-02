@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: wegigo
+spec:
+  serviceName: rabbitmq
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      serviceAccountName: rabbitmq
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: rabbitmq-autocluster
+        image: pivotalrabbitmq/rabbitmq-autocluster:latest
+        ports:
+        # rabbitmq management port
+        - name: management
+          containerPort: 15672
+        # rabbitmq AMQP port
+        - name: amqp
+          containerPort: 5672
+        readinessProbe:
+          exec:
+            command: ["rabbitmqctl", "status"]
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command: ["rabbitmqctl", "status"]
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+        imagePullPolicy: Always
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: RABBITMQ_USE_LONGNAME
+          value: "true"
+        - name: RABBITMQ_NODENAME
+          value: "rabbit@$(MY_POD_IP)"
+        - name: AUTOCLUSTER_FAILURE
+          value: "stop"
+        - name: AUTOCLUSTER_LOG_LEVEL
+          value: "debug"
+        - name: AUTOCLUSTER_CLEANUP
+          value: "true"
+        - name: CLEANUP_WARN_ONLY
+          value: "false"
+        - name: AUTOCLUSTER_TYPE
+          value: "k8s"

@@ -1,0 +1,159 @@
+html:
+  - modal: id="modal-server"
+    header: "Server Configuration"
+    body:
+      - form: id="form-server" data-parsley-validate
+        fieldset:
+          - checkbox: help-label="Server Role" checkbox-style="inline"
+            items:
+              - item: name="role" label="Master Node" value="master" v-model="roles"
+              - item: name="role" label="Worker Node" value="worker" v-model="roles"
+          - input: >
+                 help-label="Server Hostname/IP" name="host" placeholder="Server hostname or IP" v-model="host" required
+                 data-parsley-trigger="focusout" data-parsley-type="url"
+          - input: >
+                 help-label="Server SSH Port" name="port" placeholder="Server SSH Port" v-model="port" required
+                 data-parsley-trigger="focusout" data-parsley-type="number"
+          - input: >
+                 help-label="Server SSH Username" name="username" placeholder="SSH Username" v-model="username" required
+                 data-parsley-trigger="focusout" data-parsley-type="alphanum"
+          - input: >
+                 help-label="Server SSH Password" name="password" type="password" placeholder="SSH password" v-model="password"
+    footer:
+      - button: id="btn-action" button-style="primary"
+      - button: data-dismiss="modal" text="Close"
+
+javascript:
+    - inline: |
+        var vueServer = new Vue({
+            el: "#form-server",
+            data: {
+                'roles': ['master', 'worker'],
+                'host': '',
+                'port': 22,
+                'username': 'root',
+                'password': '',
+            },
+        });
+
+        var rowSelected = undefined;
+        $('#modal-server').on('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = $(event.relatedTarget)
+             // Extract info from data-action attributes from button
+            var action = button.data('action')
+
+            if(action == "Edit"){
+                // make sure edit modal open when we select the row
+                rowSelected = tableServers.row({selected: true});
+                if(rowSelected.count() == 0){
+                  return false;
+                }
+
+                // make sure Vue instance $data show what's we selected
+                var rowData = rowSelected.data();
+                vueServer.host = rowData['host'];
+                vueServer.port = rowData['port'];
+                vueServer.password = rowData['password'];
+                vueServer.roles = rowData['roles'];
+            }
+
+            if(action == "Add"){
+                //By default, the initial server.host set to be the vueWechat.host
+                vueServer.host = getHostFromUrl(vueWechat.url);
+            }
+
+            // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+            // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+            var modal = $(this)
+            modal.find('.modal-title').text('Sever ' + action);
+            $('#btn-action').text(action);
+        });
+
+        //extract host from url
+        function getHostFromUrl(url) {
+            var fake_a = document.createElement("a");
+            fake_a.href = url;
+            return fake_a.hostname;
+        }
+
+        function addServer(){
+            //Check if a value is in the data in the columns 'host' can be found:
+            // here column 0 is the index of 'host' column
+            var idx = tableServers.columns(0).data().eq(0).indexOf(vueServer.host);
+            // if we can found the duplicate one, then alert and skip it
+            if(idx > -1){
+                alertify.alert("Server: ["+ vueServer.host + "] already exist!");
+                return false;
+            }
+
+            if (existMultipleMaster(vueServer) == true) {
+                alertify.alert("Now we only support one master node!");
+                return false;
+            }
+
+            tableServers.row.add({
+                'host': vueServer.host,
+                'port': vueServer.port,
+                'username': vueServer.username,
+                'password': vueServer.password,
+                'roles': vueServer.roles,
+            }).draw();
+        }
+
+          function existMultipleMaster(server){
+              //skip the server without master role
+              if (server.roles.indexOf("master") == -1){
+                  return false
+              }
+
+              if (findMasterServer() == true) {
+                  return true;
+              }
+           }
+
+          function findMasterServer() {
+              var found = false;
+              var rows = tableServers.rows().data()
+              for (i=0; i<rows.length; i++){
+                  if (rows[i].roles.indexOf("master") != -1) {
+                    found = true;
+                    break;
+                  }
+              };
+              return found;
+          }
+
+          function editServer(){
+              var rowData = rowSelected.data();
+
+              if (rowData.host != vueServer.host && existMultipleMaster(vueServer) == true) {
+                  alertify.alert("Now we only support one master node!");
+                  return false;
+              }
+
+              // set selected row with new value
+              rowData.host = vueServer.host;
+              rowData.port = vueServer.port;
+              rowData.password = vueServer.password;
+              rowData.roles = vueServer.roles;
+
+              // update the table
+              rowSelected.invalidate().draw();
+          }
+
+          $('#btn-action').on( 'click', function(){
+              var btn_text = $('#btn-action').text();
+              if(btn_text === "Add"){
+                // validate if all required are inputs correctly
+                if($('#form-server').parsley().validate()){
+                  addServer();
+                }else{
+                  alertify.alert("Please correct the errors marked as red!");
+                }
+              }else{
+                editServer();
+              };
+
+              $('#modal-server').modal('hide');
+          });

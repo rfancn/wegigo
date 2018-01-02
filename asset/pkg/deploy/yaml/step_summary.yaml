@@ -1,0 +1,69 @@
+javascript:
+ - inline: |
+      function get_nodes(rows, checkRole) {
+          var nodeList = [];
+          for (i=0; i<rows.length; i++){
+              if (rows[i].roles.indexOf(checkRole) != -1) {
+                  var host = rows[i].username+"@"+rows[i].host+":"+rows[i].port;
+                  nodeList.push(host);
+              }
+          };
+          return nodeList;
+      }
+
+      //summary
+      var vueSummary = new Vue({
+          el: '#summary',
+          delimiters: ["[[", "]]"],
+          data: {
+              generalConfig:{},
+              wechatConfig: {},
+              rows: [],
+          },
+          computed: {
+              masterNodes: {
+                  cache: false,
+                  get: function () {
+                      return get_nodes(this.rows, "master");
+                  },
+              },
+              workerNodes: {
+                  cache: false,
+                  get: function () {
+                      return get_nodes(this.rows, "worker");
+                  },
+              },
+          },
+      });
+
+      function showStep3(stepDirection) {
+        console.log("show step4 step_summary");
+
+        if (typeof(vueGeneral)!="undefined"){
+                  Vue.set(vueSummary, "generalConfig", vueGeneral.$data);
+        }
+
+        if (typeof(vueWechat)!="undefined"){
+          Vue.set(vueSummary, "wechatConfig", vueWechat.$data);
+        }
+
+        //update the nodes summary
+        if(typeof(tableServers.rows)!="undefined"){
+          Vue.set(vueSummary, "rows", tableServers.rows().data());
+        }
+        return true;
+      }
+
+      function validateStep3() {
+        console.log("validate step4 step_summary");
+        //it at least specify one master node
+        if (vueSummary.masterNodes.length < 1) {
+          return "It need at least specify one master node!";
+        }
+
+        if (!vueWechat.url || !vueWechat.token || !vueWechat.method) {
+          return "Wechat server config url/token/method is empty!";
+        }
+
+        return "";
+      }
