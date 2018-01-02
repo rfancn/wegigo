@@ -13,10 +13,9 @@ shared: godep
 # ensure go library dependencies
 godep:
 	go get -u -v github.com/golang/dep/cmd/dep
-	go get -u -v github.com/jteeuwen/go-bindata
+	go get -u github.com/jteeuwen/go-bindata/...
 	dep ensure
 	go generate
-
 # build plugin
 plugin:
 	CGO_ENABLED=0 go build -buildmode=plugin  -o plugins/mod_deploy.so pkg/deploy/module.go
