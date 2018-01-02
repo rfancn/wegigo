@@ -16,3 +16,4 @@
 vendor/
 wegigo
 *.pem
+bindata.go
