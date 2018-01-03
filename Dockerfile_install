@@ -4,7 +4,7 @@ ADD . /go/src/github.com/rfancn/wegigo
 RUN cd /go/src/github.com/rfancn/wegigo && make
 
 # final stage
-FROM rfan/public:alpine34-ansible
+FROM rfan/public:alpine-ansible
 ARG   CACHEBUST=1
 RUN   mkdir /app && cd /app && \
       wget -q https://github.com/rfancn/ansible-libs/archive/master.zip && \

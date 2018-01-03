@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "===1: Begin kube installation"
+echo "===5:Begin kube installation==="
 
 # following tags make sure kube are installed on all nodes
 ansible-playbook -i hosts kube_setup.yaml --tags "ensure_kube"

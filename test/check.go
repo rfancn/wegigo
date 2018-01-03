@@ -178,9 +178,55 @@ func RunCommand(realCmd *exec.Cmd, w http.ResponseWriter) {
 	return
 }
 
-func main() {
-	http.HandleFunc("/", handler)
-	http.ListenAndServe("0.0.0.0:8890", nil)
+func routinePumpOutput(ch chan int) {
+	log.Println("Enter output")
+	time.Sleep(10 * time.Second)
+	close(ch)
+	log.Println("Exit output")
+}
 
+func routinePing(chPing chan int) {
+	log.Println("Enter ping")
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	PINGLOOP:
+	for {
+		log.Println("in ping for loop")
+		select {
+		case <-ticker.C:
+			log.Println("ticker ping")
+		case <-chPing:
+			log.Println("ping receive channel closed")
+			break PINGLOOP
+		}
+	}
+
+	close(chPing)
+	log.Println("Exit ping")
+}
+
+func main() {
+	//http.HandleFunc("/", handler)
+	//http.ListenAndServe("0.0.0.0:8890", nil)
+	chPing := make(chan int)
+	chOutput := make(chan int)
+	//create a routine to read from pipeReader
+	go routinePumpOutput(chOutput)
+	//create a routine to check if client side still alive or not
+	go routinePing(chPing)
+
+	log.Println("begin select")
+
+		select {
+		case <-chPing:
+			log.Println("interrupt command")
+		case <-chOutput:
+			log.Println("output done")
+			chPing<-1
+		}
+
+
+	time.Sleep(20 * time.Second)
 }
 

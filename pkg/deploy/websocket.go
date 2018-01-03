@@ -7,10 +7,7 @@ import (
 	"io"
 	"bufio"
 	"os/exec"
-	//"os"
 	"net/http"
-	"os"
-	//"fmt"
 )
 
 const (
@@ -36,57 +33,60 @@ func newWebsocket(w http.ResponseWriter, r *http.Request) *websocket.Conn {
 	return ws
 }
 
-func ping(ws *websocket.Conn, done chan struct{}) {
+func routinePing(ws *websocket.Conn, ch chan int) {
 	ticker := time.NewTicker(pingPeriod)
 	defer ticker.Stop()
+
+	PINGLOOP:
 	for {
 		select {
 		case <-ticker.C:
 			if err := ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(writeWait)); err != nil {
 				log.Println("ping:", err)
-				close(done)
+				break PINGLOOP
 			}
-		case <-done:
-			log.Println("ping done received")
-			return
+			log.Println("ping success")
+		//if we received signal from parent, then we need break the loop
+		case <-ch:
+			log.Println("ping routine receive exit signal")
+			break PINGLOOP
 		}
 	}
+	//close the channel
+	close(ch)
 }
 
-func pumpOutput(ws *websocket.Conn, r io.Reader, done chan struct{}) {
-	continueScan := true
+func routinePumpOutput(ws *websocket.Conn, r io.Reader, ch chan struct{}) {
 	s := bufio.NewScanner(r)
 
-	for continueScan {
-		//check Scan return value to decide if continue to scan or not
-		continueScan = s.Scan()
-
+	SCANLOOP:
+	for s.Scan() {
 		select {
-		//delay to be 100ms, so it will not hog browser
+		//delay 100ms to write response to browser, so it will not hog browser
 		case <-time.After(time.Millisecond*100):
 			ws.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := ws.WriteMessage(websocket.TextMessage, s.Bytes()); err != nil {
-				log.Println("write message err:", err)
-				continueScan = false
-				break
+				log.Println("pump output routine write message err:", err)
+				break SCANLOOP
 			}
 		}
 	}
 	if s.Err() != nil {
 		log.Println("scan:", s.Err())
 	}
-	close(done)
 
+	//close channel
+	close(ch)
+}
+
+func closeWebsocket(ws *websocket.Conn) {
 	ws.SetWriteDeadline(time.Now().Add(writeWait))
 	ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	time.Sleep(closeGracePeriod)
-	ws.Close()
 }
 
 //runPipecommand copied from: https://github.com/gorilla/websocket/blob/master/examples/command/main.go
 func runServerCommand(ws *websocket.Conn, cmdName string, cmdArgs ...string) {
-	defer ws.Close()
-
 	//use io.pipe to elimate the buffer io
 	pipeReader, pipeWriter := io.Pipe()
 	defer pipeReader.Close()
@@ -102,20 +102,29 @@ func runServerCommand(ws *websocket.Conn, cmdName string, cmdArgs ...string) {
 		return
 	}
 
+	chPing := make(chan int)
+	chOutput := make(chan struct{})
 	//create a routine to read from pipeReader
-	stdoutDone := make(chan struct{})
-	go pumpOutput(ws, pipeReader, stdoutDone)
+	go routinePumpOutput(ws, pipeReader, chOutput)
+	//create a routine to check if client side still alive or not
+	go routinePing(ws, chPing)
 
-	<-stdoutDone
-	log.Println("command output ended")
-	//try kill the command is not any A bigger bonk on the head.
-	if err := cmd.Process.Signal(os.Kill); err != nil {
-		log.Println("term:", err)
+	select {
+	case <-chPing:
+		log.Println("ping failed")
+		//try kill the command is not any A bigger bonk on the head.
+		if err := cmd.Process.Kill(); err != nil {
+			log.Println("term:", err)
+		}
+	case <-chOutput:
+		log.Println("output done")
+		chPing<-1
 	}
 
 	if err := cmd.Wait(); err != nil {
 		log.Println("wait:", err)
 	}
+
 	log.Println("Exit run command")
 }
 

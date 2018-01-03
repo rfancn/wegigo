@@ -39,12 +39,15 @@ func (srv *DeployServer) ViewRun(w http.ResponseWriter, r *http.Request, ps http
 	log.Println("Enter ViewRun, server status is:", srv.status)
 
 	ws := newWebsocket(w, r)
+	defer ws.Close()
 	if ws == nil {
 		http.Error(w, "Error new websocket server", http.StatusInternalServerError)
 		return
 	}
 
 	runServerCommand(ws, "/bin/sh", "deploy.sh")
+
+	//closeWebsocket(ws)
 
 	log.Println("Exit ViewRun, server status is:", srv.status)
 }
