@@ -46,9 +46,9 @@ var vueChecklist = new Vue({
     data: {
         tasks: [
             {name: 'Install kubernetes on all nodes', color:'primary', isChecked: false},
-            {name: 'Setup kubernetes master node', color:'secondary', isChecked: false},
-            {name: 'Setup kubernetes worker node', color:'success', isChecked: false},
-            {name: 'step4', color:'danger', isChecked: false},
+            {name: 'Setup kubernetes master nodes', color:'secondary', isChecked: false},
+            {name: 'Setup kubernetes worker nodes', color:'success', isChecked: false},
+            {name: 'Deploy RabbitMQ MessageBroker', color:'danger', isChecked: false},
             {name: 'step5', color:'warning', isChecked: false},
         ],
     },
@@ -62,8 +62,6 @@ function autoScrollDown(){
         setTimeout(autoScrollDown, 1000);
     }
 }
-
-
 
 function reachToBottom(){
     if ((detail.scrollTop() + detail.height() - detail[0].scrollHeight) <20) {

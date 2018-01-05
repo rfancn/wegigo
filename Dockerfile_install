@@ -11,6 +11,7 @@ RUN   mkdir /app && cd /app && \
       unzip master.zip "ansible-libs-master/ansible.cfg" && \
       unzip master.zip "ansible-libs-master/roles/ensure_kubernetes/*" && \
       unzip master.zip "ansible-libs-master/roles/configure_kubernetes/*" && \
+      unzip master.zip "ansible-libs-master/roles/kube_rabbitmq/*" && \
       mv ansible-libs-master/* /app && \
       rm -fr ansible-libs-master master.zip
 WORKDIR /app

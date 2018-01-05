@@ -3,17 +3,15 @@
   any_errors_fatal: true
   gather_facts: true
   roles:
-    - {role: ensure_kubernetes}
-  tags: ensure_kube
+    - {role: ensure_kubernetes, tags: ["ensure_kube"]}
 
 - hosts: master
   any_errors_fatal: true
   gather_facts: true
   roles:
-    - {role: configure_kubernetes, kube_node_role: "master"}
-  tags: setup_master
+    - {role: configure_kubernetes, kube_node_role: "master", tags: ["setup_master"]}
 
-- hosts: master
+- hosts: master[0]
   any_errors_fatal: true
   gather_facts: false
   tasks:
@@ -24,16 +22,37 @@
     - debug: msg="|{{result_master_connection.stdout}}|{{result_master_token.stdout}}|"
   tags: get_master_info
 
-- hosts: master_member
-  any_errors_fatal: true
-  gather_facts: true
-  roles:
-    - {role: configure_kubernetes, kube_node_role: "master_member"}
-  tags: setup_master_member
-
 - hosts: node
   any_errors_fatal: true
   gather_facts: true
   roles:
-    - {role: configure_kubernetes, kube_node_role: "node"}
-  tags: setup_node
+    - {role: configure_kubernetes, kube_node_role: "node", tags: ["setup_node"]}
+
+- hosts: master[0]
+  gather_facts: false
+  tasks:
+    - name: Loop until all nodes are ready
+      shell: kubectl get nodes | tail -n +2| awk '$2!="Ready"{print $0}'
+      register: result_nodes_not_ready
+      until: (result_nodes_not_ready.stdout == "") and (result_nodes_not_ready.rc == 0)
+      retries: 30
+      delay: 10
+      ignore_errors: yes
+  tags: wait_for_nodes_ready
+
+- hosts: master[0]
+  gather_facts: false
+  roles:
+      - {role: kube_rabbitmq, namespace: "wegigo", tags: ["deploy_rabbitmq"]}
+
+- hosts: master[0]
+  gather_facts: false
+  tasks:
+    - name: Loop until all rabbitmq are ready
+      shell: kubectl get pods -n wegigo | tail -n +2| awk '$2!="1/1"{print $0}'
+      register: result_rmq_status
+      until: (result_rmq_status.stdout == "") and (result_rmq_status.rc == 0)
+      retries: 30
+      delay: 10
+      ignore_errors: yes
+  tags: wait_for_rabbitmq_ready

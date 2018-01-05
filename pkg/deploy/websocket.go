@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"os/exec"
 	"net/http"
+	"syscall"
 )
 
 const (
@@ -85,6 +86,19 @@ func closeWebsocket(ws *websocket.Conn) {
 	time.Sleep(closeGracePeriod)
 }
 
+func killProessGroup(cmd *exec.Cmd) {
+	//get progress group id
+	pgid, err := syscall.Getpgid(cmd.Process.Pid)
+	if err != nil {
+		log.Fatal("Error get command process group id")
+	}
+	log.Println("Found pgid:", pgid)
+	//try send SIGKILL signal to whole process group
+	if err := syscall.Kill(-pgid, syscall.SIGKILL); err != nil {
+		log.Println("term:", err)
+	}
+}
+
 //runPipecommand copied from: https://github.com/gorilla/websocket/blob/master/examples/command/main.go
 func runServerCommand(ws *websocket.Conn, cmdName string, cmdArgs ...string) {
 	//use io.pipe to elimate the buffer io
@@ -94,6 +108,9 @@ func runServerCommand(ws *websocket.Conn, cmdName string, cmdArgs ...string) {
 
 	//redirect command stdout and stderr writes to pipeWriter
 	cmd := exec.Command(cmdName, cmdArgs...)
+	//create a new process group
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
 	cmd.Stdout = pipeWriter
 	cmd.Stderr = pipeWriter
 
@@ -112,12 +129,11 @@ func runServerCommand(ws *websocket.Conn, cmdName string, cmdArgs ...string) {
 	select {
 	case <-chPing:
 		log.Println("ping failed")
-		//try kill the command is not any A bigger bonk on the head.
-		if err := cmd.Process.Kill(); err != nil {
-			log.Println("term:", err)
-		}
+		killProessGroup(cmd)
 	case <-chOutput:
 		log.Println("output done")
+		killProessGroup(cmd)
+		//notify ping routine to exit
 		chPing<-1
 	}
 
