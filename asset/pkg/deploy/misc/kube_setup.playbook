@@ -38,6 +38,13 @@
       retries: 30
       delay: 10
       ignore_errors: yes
+    - name: Loop until all kube system pods are ready after node joined
+      shell: kubectl -n kube-system get pods | tail -n +2| awk '{split($2,a,"/");if(a[1]!=a[2] || $3!="Running"){print $0}}'
+      register: result_2ndpods_not_ready
+      until: (result_2ndpods_not_ready.stdout == "") and (result_2ndpods_not_ready.rc == 0)
+      retries: 90
+      delay: 20
+      ignore_errors: yes
   tags: wait_for_nodes_ready
 
 - hosts: master[0]
@@ -49,7 +56,7 @@
   gather_facts: false
   tasks:
     - name: Loop until all rabbitmq are ready
-      shell: kubectl get pods -n wegigo | tail -n +2| awk '$2!="1/1"{print $0}'
+      shell: kubectl -n wegigo get pods | tail -n +2| awk '{split($2,a,"/");if(a[1]!=a[2] || $3!="Running"){print $0}}'
       register: result_rmq_status
       until: (result_rmq_status.stdout == "") and (result_rmq_status.rc == 0)
       retries: 30
