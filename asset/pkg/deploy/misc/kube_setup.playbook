@@ -39,9 +39,9 @@
       delay: 10
       ignore_errors: yes
     - name: Loop until all kube system pods are ready after node joined
-      shell: kubectl -n kube-system get pods | tail -n +2| awk '{split($2,a,"/");if(a[1]!=a[2] || $3!="Running"){print $0}}'
-      register: result_2ndpods_not_ready
-      until: (result_2ndpods_not_ready.stdout == "") and (result_2ndpods_not_ready.rc == 0)
+      shell: kubectl -n kube-system get pods | tail -n +2 | awk '{split($2,a,"/");if(a[1]==a[2] && $3!="Running"){print $0}}' | wc -l
+      register: result_2ndpods_ready
+      until: (result_2ndpods_ready.stdout|int >=7) and (result_2ndpods_ready.rc == 0)
       retries: 90
       delay: 20
       ignore_errors: yes
