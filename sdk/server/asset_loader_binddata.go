@@ -4,6 +4,7 @@ import (
 	"os"
 	"net/http"
 	"reflect"
+	"path/filepath"
 	"github.com/elazarl/go-bindata-assetfs"
 )
 
@@ -15,7 +16,7 @@ type BindataFuncAssetDir  func(string) ([]string, error)
 type BindataFuncAssetInfo func(string) (os.FileInfo, error)
 
 type BindataLoader struct {
-	BaseLoader
+	BaseAssetLoader
 	AssetFunc  		BindataFuncAsset
 	AssetDirFunc   	BindataFuncAssetDir
 	AssetInfoFunc  	BindataFuncAssetInfo
@@ -46,17 +47,14 @@ func getBindataFuncs(args... interface{}) (assetFunc BindataFuncAsset, assetDirF
 }
 
 //NewBindataLoader: the last 3 one are functions exported by go-bindata
-func NewBindataLoader(serverName string, assetFunc	BindataFuncAsset, assetDirFunc BindataFuncAssetDir, assetInfoFunc BindataFuncAssetInfo) *BindataLoader {
+func NewBindataLoader(relPath string, assetFunc BindataFuncAsset, assetDirFunc BindataFuncAssetDir, assetInfoFunc BindataFuncAssetInfo) *BindataLoader {
 	loader := &BindataLoader{AssetFunc: assetFunc, AssetDirFunc: assetDirFunc, AssetInfoFunc: assetInfoFunc}
-	//for performance consideration,
-	//it need save the root info for future reference
-	loader.initRootInfo(loader.GetRootDirname(), serverName)
+
+	rootDirname := loader.GetRootDirname()
+	loader.RootDir = filepath.Join(rootDirname, relPath)
+	loader.RootUrl = filepath.Join("/", loader.RootDir)
 
 	return loader
-}
-
-func (loader *BindataLoader) GetName() string {
-	return "bindata"
 }
 
 //In project source files, go-bindata always use "asset" as the root dirname
@@ -68,7 +66,7 @@ func (loader *BindataLoader) GetRootDirname() string {
 func (loader *BindataLoader) GetHttpFilesystem() http.FileSystem {
 	//prefix must be the asset Rootdir name,
 	//assetfs library will combine the assetRootDirname + relpath of the asset name
-	prefix := loader.GetRootDirname()
+	prefix := loader.RootDir
 	return &assetfs.AssetFS{Prefix: prefix, Asset: loader.AssetFunc, AssetDir: loader.AssetDirFunc,AssetInfo: loader.AssetInfoFunc}
 }
 

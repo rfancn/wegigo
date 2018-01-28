@@ -7,38 +7,23 @@ import (
 	"log"
 	"github.com/kabukky/httpscerts"
 	"github.com/julienschmidt/httprouter"
-	"github.com/flosch/pongo2"
+	"path/filepath"
 )
 
 type BaseServer struct {
 	Name        string
 	router      *httprouter.Router
-	assetLoader IAssetLoader
-	templateSet *pongo2.TemplateSet
 }
 
-func (srv *BaseServer) Initialize(serverName, assetDir string, args... interface{}) bool {
+func (srv *BaseServer) Initialize(serverName string, args ...interface{}) bool {
 	srv.Name = serverName
-
-	srv.assetLoader = newAssetLoader(serverName, assetDir, args...)
-	if srv.assetLoader == nil {
-		log.Println("Failed to initialize asset loader")
-		return false
-	}
-
-	srv.router = newRouter(srv.assetLoader)
-	if srv.router == nil {
-		log.Println("Failed to initialize server router")
-		return false
-	}
-
-	srv.templateSet = newTemplateSet(srv.assetLoader)
-	if srv.templateSet == nil {
-		log.Println("Failed to initialize server template set")
-		return false
-	}
+	srv.router = httprouter.New()
 
 	return true
+}
+
+func (srv *BaseServer) ResetHttpRouter() {
+	srv.router = httprouter.New()
 }
 
 func (srv *BaseServer) RunHttp(bind string, port int) error {
@@ -62,11 +47,12 @@ func (srv *BaseServer) RunHttps(bind string, port int) error {
 
 func (srv *BaseServer) AddRoute(method string, url string, handle httprouter.Handle) bool {
 	lowerMethod := strings.ToLower(method)
+	absUrl := filepath.Join("/", srv.Name, url)
 	switch lowerMethod {
 	case "get":
-		srv.router.GET(url, handle)
+		srv.router.GET(absUrl, handle)
 	case "post":
-		srv.router.POST(url, handle)
+		srv.router.POST(absUrl, handle)
 	default:
 		log.Println("Non supported http method: ", method)
 		return false
@@ -74,25 +60,4 @@ func (srv *BaseServer) AddRoute(method string, url string, handle httprouter.Han
 
 	return true
 }
-
-func (srv *BaseServer) GetAssetPath(assetName string, args ...interface{}) string {
-	//by default, namespace is "pkg" unless you specify the namespace in args
-	namespace := ASSET_NAMESPACE_PKG
-	if len(args) == 1 {
-		namespace = args[0].(string)
-	}
-
-	return srv.assetLoader.GetAssetPath(namespace, assetName)
-}
-
-
-func (srv *BaseServer) ReadAssetBytes(assetName string, args ...interface{})	([]byte, error) {
-	assetPath := srv.GetAssetPath(assetName, args...)
-	return srv.assetLoader.ReadBytes(assetPath)
-}
-
-func (srv *BaseServer) GetAssetLoaderName()	 string {
-	return srv.assetLoader.GetName()
-}
-
 

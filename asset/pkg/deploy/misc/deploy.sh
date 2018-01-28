@@ -32,3 +32,4 @@ ansible-playbook -i hosts kube_setup.yaml --tags "deploy_rabbitmq"
 # wait for rabbitmq get ready
 ansible-playbook -i hosts kube_setup.yaml --tags "wait_for_rabbitmq_ready"
 echo "===60:Deploy RabbitMQ MessageBroker==="
+

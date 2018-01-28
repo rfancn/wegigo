@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block custom_css %}
+<link href="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.css" rel="stylesheet">
+<link href="{{ VENDOR_ROOT }}/switchery/switchery.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block custom_js %}
+<script src="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.js"></script>
+<script src="{{ VENDOR_ROOT }}/switchery/switchery.min.js"></script>
+<script src="{{ PKG_ROOT }}/js/app.js"></script>
+{% endblock %}
+
+{% block content %}
+	{% include "page_title.html" with title="Application" titleDesc="all application list" %}
+
+    <div class="clearfix"></div>
+
+    <div class="row">
+        <div class="col-md-12">
+            {% include "xpanel.html" with panelTitle="Application" panelDesc="application list desc" panelContent="app_list_table" %}
+        </div>
+    </div>
+{% endblock %}

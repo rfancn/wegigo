@@ -9,30 +9,34 @@ import (
 
 //External Asset generate By local filesystem
 type LocalFsLoader struct {
-	BaseLoader
+	BaseAssetLoader
 	//the assetDir option specified when running wegigo
 	AssetDir string
 }
 
-func NewLocalFsLoader(serverName, assetDir string) *LocalFsLoader {
+// assetDir is the whole asset root dir,
+// divide asset into two logic types of asset:
+// 1. vendor asset is vendor specific asset, like 3rd party js/css libraries
+// 2. pkg asset belongs to specific package, according to codes in src/pkg/<pkg name>, it is normally serverName
+func NewLocalFsLoader(assetDir string, relPath string) *LocalFsLoader {
 	loader := &LocalFsLoader{AssetDir: assetDir}
-	loader.initRootInfo(loader.GetRootDirname(), serverName)
+
+	rootDirname := loader.GetRootDirname()
+	loader.RootDir = filepath.Join(rootDirname, relPath)
+	loader.RootUrl = filepath.Join("/", loader.RootDir)
 
 	return loader
-}
-
-func (loader *LocalFsLoader) GetName() string {
-	return "localfs"
-}
-
-func (loader *LocalFsLoader) GetHttpFilesystem() http.FileSystem {
-	return http.Dir(loader.AssetDir)
 }
 
 //root dirname should be the specified assetDir's last dirname
 func (loader *LocalFsLoader) GetRootDirname() string {
 	return filepath.Base(loader.AssetDir)
 }
+
+func (loader *LocalFsLoader) GetHttpFilesystem() http.FileSystem {
+	return http.Dir(loader.RootDir)
+}
+
 func (loader *LocalFsLoader) Exists(assetPath string) bool {
 	if _, err := os.Stat(assetPath); err == nil {
 		return true

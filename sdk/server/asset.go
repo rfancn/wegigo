@@ -6,9 +6,17 @@ import (
 	"log"
 )
 
+const ASSET_NAMESPACE_PKG = "pkg"
+const ASSET_NAMESPACE_VENDOR = "vendors"
 
-var ASSET_NAMESPACE_PKG = "pkg"
-var ASSET_NAMESPACE_VENDOR = "vendor"
+var ASSET_NAMESPACES = []string {
+	ASSET_NAMESPACE_PKG,
+	ASSET_NAMESPACE_VENDOR,
+}
+
+const ASSET_LOADER_TYPE_LOCALFS = "localfs"
+const ASSET_LOADER_TYPE_BINDATA = "go-bindata"
+
 
 //getBasedir returns absolute wegigo running dir
 func getBasedir() string {

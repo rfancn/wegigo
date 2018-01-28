@@ -11,12 +11,12 @@ import (
 type LoadFunc func(path string) ([]byte, error)
 
 type MemoryTemplateLoader struct {
-	assetLoader IAssetLoader
+	assetManager IAssetManager
 }
 
 //NewMemoryTemplateLoader loads a go-bindata object data
-func NewMemoryTemplateLoader(assetLoader IAssetLoader) pongo2.TemplateLoader {
-	return &MemoryTemplateLoader{assetLoader: assetLoader}
+func NewMemoryTemplateLoader(assetManager IAssetManager) pongo2.TemplateLoader {
+	return &MemoryTemplateLoader{assetManager: assetManager}
 }
 
 // Abs resolves a filename relative to the base directory. Absolute paths are allowed.
@@ -38,7 +38,7 @@ func (m MemoryTemplateLoader) Abs(base, name string) string {
 
 // Get reads the path's content from your local filesystem.
 func (m MemoryTemplateLoader) Get(path string) (io.Reader, error) {
-	data, err := m.assetLoader.ReadBytes(path)
+	data, err := m.assetManager.ReadBytes(path)
 	if err != nil {
 		return nil, err
 	}

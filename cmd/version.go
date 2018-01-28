@@ -24,8 +24,8 @@ var VERSION = "0.0.2"
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Wechat Application Server",
-	Long: `wegigo is a plugin based application server, receive wechat request,
+	Short: "Version information",
+	Long: `wegigo is a app based application server, receive wechat request,
 load and run _, then responds to wechat. It is enterprise ready,
 clustered, high performance application server.`,
 

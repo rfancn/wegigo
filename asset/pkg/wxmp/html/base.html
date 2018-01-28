@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="ryan.fan">
+    <title>{% block mytitle %}{% endblock %}</title>
+    <!-- Bootstrap Core CSS -->
+    <link href="{{ VENDOR_ROOT }}/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ VENDOR_ROOT }}/font-awesome/font-awesome.min.css" rel="stylesheet">
+    {% block custom_css %}{% endblock %}
+    <link href="{{ PKG_ROOT }}/css/main.css" rel="stylesheet">
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="{{ VENDOR_ROOT }}/html5shiv/html5shiv.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/respond.js/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body class="nav-md">
+	<div class="container body">
+		<div class="main_container">
+			{% include "sidemenu.html" %}
+			{% include "topnav.html" %}
+            <!-- page content -->
+            <div class="right_col" role="main">
+                {% block content %}{% endblock %}
+            </div>
+            <!-- /page content -->
+			{% include "footer.html" %}
+		</div>
+	</div>
+
+	<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+	<script src="{{ VENDOR_ROOT }}/bootstrap/ie10-viewport-bug-workaround.js"></script>
+    <script src="{{ VENDOR_ROOT }}/jquery/jquery.min.js"></script>
+    <script src="{{ VENDOR_ROOT }}/bootstrap/bootstrap.min.js"></script>
+    <script src="{{ PKG_ROOT }}/js/main.js"></script>
+    {% block custom_js %}{% endblock %}
+</body>
+</html>

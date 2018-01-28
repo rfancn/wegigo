@@ -3,39 +3,22 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"github.com/flosch/pongo2"
 	"log"
 	"encoding/json"
+	"github.com/flosch/pongo2"
 )
 
 //new pongo2 template set based on loader instance's type
 //there are two template set exist at this moment
 //1. memory loader:  pass bindataLoader as arg, and read template data from golang object
 //2. localfs loader: used pongo2 internal localfs loader
-func newTemplateSet(assetLoader IAssetLoader) (tSet *pongo2.TemplateSet) {
-	loaderName := assetLoader.GetName()
-	switch loaderName {
-	case "bindata":
-		memLoader := NewMemoryTemplateLoader(assetLoader)
-		tSet = pongo2.NewSet("memory", memLoader)
-	case "localfs":
-		fileLoader := pongo2.MustNewLocalFileSystemLoader("")
-		tSet = pongo2.NewSet("localfs", fileLoader)
-	default:
-		log.Println("Invalid server asset type")
-		tSet = nil
-	}
-
-	return tSet
-}
-
-func newTemplateSet123(assetLoader IAssetLoader) (tSet *pongo2.TemplateSet) {
-	loaderType := getInterfaceType(assetLoader)
+func newTemplateSet(assetManager IAssetManager) (tSet *pongo2.TemplateSet) {
+	loaderType := assetManager.GetLoaderType()
 	switch loaderType {
-	case "BindataLoader":
-		memLoader := NewMemoryTemplateLoader(assetLoader)
+	case ASSET_LOADER_TYPE_BINDATA:
+		memLoader := NewMemoryTemplateLoader(assetManager)
 		tSet = pongo2.NewSet("memory", memLoader)
-	case "LocalFsLoader":
+	case ASSET_LOADER_TYPE_LOCALFS:
 		fileLoader := pongo2.MustNewLocalFileSystemLoader("")
 		tSet = pongo2.NewSet("localfs", fileLoader)
 	default:
@@ -44,33 +27,17 @@ func newTemplateSet123(assetLoader IAssetLoader) (tSet *pongo2.TemplateSet) {
 	}
 
 	return tSet
-}
-
-//template lookup path will be checked by following order:
-//- from pkg asset dir
-//- from vendor asset dir
-func (srv *BaseServer) LookupTemplate(templateFile string) string {
-	var namespaces = []string{"pkg", "vendor"}
-
-	for _, nm := range namespaces {
-		templatePath := srv.assetLoader.GetAssetPath(nm, templateFile)
-		if srv.assetLoader.Exists(templatePath) {
-			return templatePath
-		}
-	}
-
-	return ""
 }
 
 //Response and render templates
-func (srv *BaseServer) Render(templatePath string, context map[string]interface{}) (string, error) {
+func (srv *SimpleServer) Render(templatePath string, context map[string]interface{}) (string, error) {
 	if context == nil {
 		context = make(map[string]interface{})
 	}
 
 	//add root url for template reference
-	context["PKG_ROOT"] = srv.assetLoader.GetRootUrl("pkg")
-	context["VENDOR_ROOT"] = srv.assetLoader.GetRootUrl("vendor")
+	context["PKG_ROOT"] = srv.assetManager.GetRootUrl(ASSET_NAMESPACE_PKG)
+	context["VENDOR_ROOT"] = srv.assetManager.GetRootUrl(ASSET_NAMESPACE_VENDOR)
 
 	t := pongo2.Must(srv.templateSet.FromFile(templatePath))
 	output, err := t.Execute(context)
@@ -83,8 +50,8 @@ func (srv *BaseServer) Render(templatePath string, context map[string]interface{
 }
 
 //Response and render generic
-func (srv *BaseServer) RespRender(w http.ResponseWriter, templateFile string, context map[string]interface{}) bool {
-	templatePath := srv.LookupTemplate(templateFile)
+func (srv *SimpleServer) RespRender(w http.ResponseWriter, templateFile string, context map[string]interface{}) bool {
+	templatePath := srv.assetManager.GetAssetPath(templateFile)
 	if templatePath == "" {
 		log.Println("Error locate template:", templateFile)
 		return false
@@ -105,7 +72,7 @@ func (srv *BaseServer) RespRender(w http.ResponseWriter, templateFile string, co
 	return true
 }
 
-func (srv *BaseServer) RespText(w http.ResponseWriter, response string) bool {
+func (srv *SimpleServer) RespText(w http.ResponseWriter, response string) bool {
 	_, err := fmt.Fprint(w, response)
 	if err != nil {
 		fmt.Printf("Error return text response: ", err)
@@ -115,7 +82,7 @@ func (srv *BaseServer) RespText(w http.ResponseWriter, response string) bool {
 	return true
 }
 
-func (srv *BaseServer) RespJson(w http.ResponseWriter, response interface{}) bool {
+func (srv *SimpleServer) RespJson(w http.ResponseWriter, response interface{}) bool {
 	w.Header().Set("Content-Type", "application/json")
 
 	js, err := json.Marshal(response)

@@ -24,12 +24,10 @@ import (
 // RootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "wegigo",
-	/**
-	Short: "Wechat Application Server",
-	Long: `wegigo is a plugin based application server, receive wechat request,
-load and run _, then responds to wechat. It is enterprise ready,
-clustered, high performance application server.`,
-	**/
+	Short: "Plugin based Application Server",
+	Long: `wegigo is a app based application server,
+Receive outside request, and redirect to corresponding worker,
+It is enterprise ready, clustered, high performance application server.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

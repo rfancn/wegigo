@@ -19,8 +19,10 @@ const (
 	STATUS_DEPLOY_STARTED
 )
 
+const SERVER_NAME = "deploy"
+
 type DeployServer struct {
-	server.BaseServer
+	server.SimpleServer
 	y2h 		*goy2h.Y2H
 	status  	ServerStatus
 	response    *ServerJsonResponse
@@ -32,40 +34,48 @@ type ServerJsonResponse struct {
 	Detail string
 }
 
-func (srv *DeployServer) Initialize(serverName, assetDir string) bool {
-	if ! srv.BaseServer.Initialize(serverName, assetDir, Asset, AssetDir, AssetInfo) {
-		return false
+func NewDeployServer(serverName string, assetDir string) *DeployServer {
+	srv := &DeployServer{}
+
+	//when initialize simpleserver, the first argument must be assetDir
+	if ! srv.SimpleServer.Initialize(serverName, assetDir, Asset, AssetDir, AssetInfo) {
+		return nil
 	}
 
 	//set status to be init at the very beginning
 	srv.status = STATUS_INIT
 	srv.response = &ServerJsonResponse{Result:"", Detail:""}
 
-	//get deploy related files
-	srv.prepareDeployEnv()
-
-	srv.AddRoute("get", "/deploy", srv.ViewIndex)
-	srv.AddRoute("post", "/deploy/config", srv.ViewConfig)
-	srv.AddRoute("get", "/deploy/deploy", srv.ViewDeploy)
-	srv.AddRoute("get", "/deploy/run", srv.ViewRun)
-
 	srv.y2h = goy2h.New()
-	return true
+
+	return srv
 }
 
 func RunServerMode(bind string, port int, assetDir string, timeout int) {
 	log.Printf("Run deploy Server at: https://%s:%d/\n", bind, port)
 
-	srv := &DeployServer{timeout:timeout}
-	if ! srv.Initialize("deploy", assetDir) {
-		log.Fatal("Failed to initialize the server")
+	srv := NewDeployServer(SERVER_NAME, assetDir)
+	if srv == nil {
+		log.Fatal("Error create deploy server")
 	}
+
+	//get deploy related files
+	srv.prepareDeployEnv()
+
+	srv.setupRouter()
 
 	err := srv.RunHttps(bind, port)
 	if err != nil {
 		log.Fatal("Error start deploy server:", err)
 	}
 
+}
+
+func (srv *DeployServer) setupRouter() {
+	srv.AddRoute("get", "/", srv.ViewIndex)
+	srv.AddRoute("post", "/config", srv.ViewConfig)
+	srv.AddRoute("get", "/deploy", srv.ViewDeploy)
+	srv.AddRoute("get", "/run", srv.ViewRun)
 }
 
 //restoreFromBindata: read bindata object content and save to target file
@@ -112,14 +122,14 @@ func (srv *DeployServer) copyFromLocalfs(srcFile, targetFile string) bool {
 
 
 func (srv *DeployServer) prepareDeployEnv() {
-	assetLoaderName := srv.GetAssetLoaderName()
+	assetLoaderType := srv.GetLoaderType()
 	deployFiles := map[string]string{"deploy.sh":"deploy.sh", "kube_setup.playbook":"kube_setup.yaml"}
 
 	for srcFile, targetFile:= range deployFiles {
-		switch assetLoaderName {
-		case "bindata":
+		switch assetLoaderType {
+		case server.ASSET_LOADER_TYPE_BINDATA:
 			srv.restoreFromBindata(srcFile, targetFile)
-		case "localfs":
+		case server.ASSET_LOADER_TYPE_LOCALFS:
 			srv.copyFromLocalfs(srcFile, targetFile)
 		}
 	}

@@ -5,7 +5,7 @@ import (
 )
 
 type IServer interface {
-	Initialize(name, assetDir string)					bool
+	Initialize(name string, args ...interface{})					bool
 	//ReadAssetBytes read the asset data from "pkg" namespace by default,
 	//if you want to read it from "vendor" namespace, then specify namespace in args
 	ReadAssetBytes(assetName string, args... interface{})		([]byte, error)

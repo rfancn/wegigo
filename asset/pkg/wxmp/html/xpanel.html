@@ -1,0 +1,10 @@
+<div class="x_panel">
+    <div class="x_title">
+        <h2>{{ panelTitle }}</h2>
+        <div class="clearfix"></div>
+    </div>
+    <div class="x_content">
+        <p>{{ panelDesc}}</p>
+        {% include panelContent|add:".html" %}
+    </div>
+</div>
