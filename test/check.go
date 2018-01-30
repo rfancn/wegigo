@@ -207,26 +207,21 @@ func routinePing(chPing chan int) {
 }
 
 func main() {
-	//http.HandleFunc("/", handler)
-	//http.ListenAndServe("0.0.0.0:8890", nil)
-	chPing := make(chan int)
-	chOutput := make(chan int)
-	//create a routine to read from pipeReader
-	go routinePumpOutput(chOutput)
-	//create a routine to check if client side still alive or not
-	go routinePing(chPing)
+	type Foo struct {
+		FirstName string `tag_name:"tag 1"`
+		LastName  string `tag_name:"tag 2"`
+		Age       int    `tag_name:"tag 3"`
+	}
 
-	log.Println("begin select")
+	f := &Foo{}
 
-		select {
-		case <-chPing:
-			log.Println("interrupt command")
-		case <-chOutput:
-			log.Println("output done")
-			chPing<-1
-		}
+	a := "test"
 
+	t := reflect.TypeOf(f)
 
-	time.Sleep(20 * time.Second)
+	//v := reflect.ValueOf(f).Elem()
+
+	fmt.Printf("%v", t.Elem().Name())
+	fmt.Printf("%v", a.Elem().Name())
 }
 

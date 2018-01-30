@@ -6,7 +6,16 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (srv *WxmpServer) ViewAppIndex(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (srv *WxmpServer) ViewAdminIndex(w http.ResponseWriter, r *http.Request) {
+	log.Println("admin index")
+
+	context := make(map[string]interface{})
+	context["enabledApps"] = srv.appManager.GetEnabledApps()
+
+	srv.RespRender(w, "index.html", context)
+}
+
+func (srv *WxmpServer) ViewAppAdminIndex(w http.ResponseWriter, r *http.Request) {
 	log.Println("app index")
 
 	context := make(map[string]interface{})
@@ -17,11 +26,14 @@ func (srv *WxmpServer) ViewAppIndex(w http.ResponseWriter, r *http.Request, para
 }
 
 
-func (srv *WxmpServer) ViewAppConfig(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (srv *WxmpServer) ViewAppConfig(w http.ResponseWriter, r *http.Request) {
+	params := r.Context().Value("params").(httprouter.Params)
 	log.Println("config app:", params.ByName("uuid"))
 }
 
-func (srv *WxmpServer) ViewAppToggle(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (srv *WxmpServer) ViewAppToggle(w http.ResponseWriter, r *http.Request) {
+	params := r.Context().Value("params").(httprouter.Params)
+
 	appUuid :=  params.ByName("uuid")
 
 	appName := r.FormValue("name")

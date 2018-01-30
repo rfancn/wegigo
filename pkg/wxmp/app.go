@@ -31,18 +31,18 @@ func listAllModules(dir string) map[string]string {
 	return modules
 }
 
-
+//loadApps: list all app module files and load them
 func (srv *WxmpServer) loadApps() {
 	if _, err := os.Stat(srv.appsDir); err != nil {
 		log.Fatal("Non exist apps dir:", srv.appsDir)
 	}
 
+
 	appModuleInfos := listAllModules(srv.appsDir)
 	for appModName, appModPath := range appModuleInfos {
-		log.Println(appModPath)
 		plug, err := plugin.Open(appModPath)
 		if err != nil {
-			log.Printf("failed to open app module[%s]: %v\n", appModName, err)
+			log.Printf("failed to open app module[%s]:%s", appModName, err.Error())
 			continue
 		}
 
@@ -59,14 +59,21 @@ func (srv *WxmpServer) loadApps() {
 		}
 
 		if err := app.Init(srv.appManager); err != nil {
-			log.Printf("%s initialization failed: %v\n", appModName, err)
+			log.Printf("%s initialization failed: %s\n", appModName, err.Error())
 			continue
 		}
+
+		//run app
+		go app.Run()
 	}
+
+
 	//srv.ctx = context.WithValue(srv.ctx, "apps", apps)
 }
 
 func (srv *WxmpServer) discoverApps() {
+	srv.rmqManager.DeclareTopicExchange(SERVER_NAME, false)
+
 	srv.loadApps()
 	//srv.appManager.Init()
 }

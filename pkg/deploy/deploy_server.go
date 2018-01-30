@@ -72,10 +72,10 @@ func RunServerMode(bind string, port int, assetDir string, timeout int) {
 }
 
 func (srv *DeployServer) setupRouter() {
-	srv.AddRoute("get", "/", srv.ViewIndex)
-	srv.AddRoute("post", "/config", srv.ViewConfig)
-	srv.AddRoute("get", "/deploy", srv.ViewDeploy)
-	srv.AddRoute("get", "/run", srv.ViewRun)
+	srv.AddHttpRouterHandler("get", "/", srv.ViewIndex)
+	srv.AddHttpRouterHandler("post", "/config", srv.ViewConfig)
+	srv.AddHttpRouterHandler("get", "/deploy", srv.ViewDeploy)
+	srv.AddHttpRouterHandler("get", "/run", srv.ViewRun)
 }
 
 //restoreFromBindata: read bindata object content and save to target file

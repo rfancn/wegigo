@@ -23,7 +23,8 @@ Disable: 1. update etcd app configuration 2. destroy proxy instance or remove th
 Uninstall: 1. clean etcd app setting 2. remove from app server docker image
  */
 type IApp interface {
-	Init(appManager *AppManager) 	error
+	Init(appManager *AppManager) error
+	Run()
 }
 
 //App basic info

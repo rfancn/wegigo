@@ -1,11 +1,11 @@
 package etcd
 
 import (
-	"github.com/coreos/etcd/clientv3"
 	"context"
 	"log"
 	"encoding/json"
 	"fmt"
+	"github.com/coreos/etcd/clientv3"
 )
 
 type EtcdManager struct {

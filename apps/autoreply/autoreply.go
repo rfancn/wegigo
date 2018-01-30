@@ -6,10 +6,11 @@ import (
 )
 
 //go:generate go-bindata -o apps/autoreply/bindata.go apps/autoreply/asset/...
+//var FOR_SERVER = "wxmp"
 
 var APP_INFO = &app.AppInfo{
 	Uuid: "9856d61b-e9fe-4346-b64d-dcd1102f2719",
-	Name: "Auto Reply",
+	Name: "AutoReply",
 	Version: "0.0.1",
 	Author: "Ryan Fan",
 	Desc: "auto reply wechat messages based on rules",

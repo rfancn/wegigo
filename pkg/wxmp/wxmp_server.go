@@ -17,6 +17,9 @@ const SERVER_NAME = "wxmp"
 type WxmpServer struct {
 	server.SimpleServer
 
+	//server config
+
+
 	// all kinds of managers
 	etcdManager 	*etcd.EtcdManager
 	appManager 		*app.AppManager
@@ -90,21 +93,6 @@ func Run(appsDir string, assetDir string, etcdAddress string, etcdPort int, rabb
 	//log.Println("Enabled UUIDs:", srv.remoteConfig.GetAppUuids("enabled"))
 }
 
-func (srv *WxmpServer) setupRouter() {
-	log.Println("Setup router")
-
-	srv.AddRoute("get", "/admin/", srv.ViewIndex)
-	srv.AddRoute("get", "/admin/app/", srv.ViewAppIndex)
-
-	//chain handler: isEnabledMiddleware->mainHandler
-	//handlerChain := alice.New(isEnabledMiddleware).Then(http.HandlerFunc(mainHandler))
-	//srv.AddRoute("get", "/app/:uuid", HandleFunc(handlerChain, srv.remoteConfig.enabledApps))
-
-	//app config route
-	srv.AddRoute("get", "/admin/app/config/:uuid", srv.ViewAppConfig)
-	srv.AddRoute("post", "/admin/app/toggle/:uuid", srv.ViewAppToggle)
-
-}
 
 func (srv *WxmpServer) setupShutdownHandler() {
 	gracefulShutdownChan := make(chan os.Signal, 2)

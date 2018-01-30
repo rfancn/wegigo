@@ -8,6 +8,7 @@ import (
 	"github.com/kabukky/httpscerts"
 	"github.com/julienschmidt/httprouter"
 	"path/filepath"
+	"context"
 )
 
 type BaseServer struct {
@@ -45,14 +46,15 @@ func (srv *BaseServer) RunHttps(bind string, port int) error {
 	return http.ListenAndServeTLS(listen, "cert.pem", "key.pem", srv.router)
 }
 
-func (srv *BaseServer) AddRoute(method string, url string, handle httprouter.Handle) bool {
+//add httprouter handle func
+func (srv *BaseServer) AddHttpRouterHandler(method string, url string, handleFunc httprouter.Handle) bool {
 	lowerMethod := strings.ToLower(method)
 	absUrl := filepath.Join("/", srv.Name, url)
 	switch lowerMethod {
 	case "get":
-		srv.router.GET(absUrl, handle)
+		srv.router.GET(absUrl, handleFunc)
 	case "post":
-		srv.router.POST(absUrl, handle)
+		srv.router.POST(absUrl, handleFunc)
 	default:
 		log.Println("Non supported http method: ", method)
 		return false
@@ -60,4 +62,24 @@ func (srv *BaseServer) AddRoute(method string, url string, handle httprouter.Han
 
 	return true
 }
+
+//convert http.Handler to httprouter.Handle
+func NewHttpRouterHandle(h http.Handler) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, "params", params)
+		r = r.WithContext(ctx)
+		h.ServeHTTP(w, r)
+	}
+}
+
+//add http handle func
+func (srv *BaseServer) AddHttpHandler(method string, url string, handler http.Handler) bool {
+	return srv.AddHttpRouterHandler(method, url, NewHttpRouterHandle(handler))
+}
+
+func (srv *BaseServer) AddHttpHandlerFunc(method string, url string, handlerFunc func(http.ResponseWriter, *http.Request)) bool {
+	return srv.AddHttpRouterHandler(method, url, NewHttpRouterHandle(http.HandlerFunc(handlerFunc)))
+}
+
 
