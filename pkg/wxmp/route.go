@@ -6,7 +6,7 @@ import (
 	"log"
 	"context"
 	"github.com/rfancn/wegigo/sdk/wxmp"
-	"github.com/justinas/alice"
+	//"github.com/justinas/alice"
 )
 
 const TOKEN = "laonabuzhai"
@@ -28,17 +28,11 @@ func CheckSignatureMiddleware(next http.Handler) http.Handler {
 }
 
 //WxmpRequestMiddleware: convert http.Request to WxmpRequest
-func WxmpRequestMiddleware(next http.Handler) http.Handler {
+func MsgHeaderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//convert http.Request to WxmpRequest
-		wxmpRequest := wxmp.NewWxmpRequest(r)
-		if wxmpRequest == nil {
-			log.Println("WxmpRequestMiddleware(): Error get WxmpRequest")
-			return
-		}
 
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, "wxmpRequest", wxmpRequest)
+		ctx = context.WithValue(ctx, "wxmpRequest", "")
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
@@ -47,6 +41,7 @@ func WxmpRequestMiddleware(next http.Handler) http.Handler {
 func (srv *WxmpServer) setupRouter() {
 	log.Println("Setup router")
 
+	/**
 	//handle wxmp server verification request
 	srv.AddHttpHandler("get", "/",
 		alice.New(CheckSignatureMiddleware).Then(http.HandlerFunc(srv.ViewVerifyWxmpServer)))
@@ -54,8 +49,9 @@ func (srv *WxmpServer) setupRouter() {
 	//handle wxmp server post request, request follow below logic flow:
 	//1. WxmpRequestMiddleware:  HttpRequest -> WxmpRequest
 	srv.AddHttpHandler("post", "/", alice.New(
-		CheckSignatureMiddleware,
-		WxmpRequestMiddleware).Then(http.HandlerFunc(srv.ViewMain)))
+		CheckSignatureMiddleware).Then(http.HandlerFunc(srv.ViewMain)))
+	**/
+	srv.AddHttpHandlerFunc("post", "/", srv.ViewTest)
 
 	//admin urls
 	srv.AddHttpHandlerFunc("get", "/admin/", srv.ViewAdminIndex)

@@ -19,14 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-
-//deployCfgFile is a ansible hosts file definition
-var	inventory string
-var serverAddress string
-var serverPort int
-var serverAssetDir string
-var timeout int
+var cmdArg = &deploy.CmdArgument{}
 
 var deployCmd = &cobra.Command{
 	Use:   "deploy [INVENTORY]...",
@@ -34,25 +27,16 @@ var deployCmd = &cobra.Command{
 	Long: `If no INVENTORY then run as deploy server,
 Otherwise deploy with INVENTORY config file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		argsLen := len(args)
-		if argsLen == 0 {
-			deploy.RunServerMode(serverAddress, serverPort, serverAssetDir, timeout)
-		}else if argsLen == 1 {
-			inventory = args[0]
-			deploy.RunCliMode(inventory, timeout)
-		}
+		deploy.Run(cmdArg)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(deployCmd)
 
-	//deployCmd.Flags().StringVarP(&inventory, "inventory", "i", "", "ansible deployment inventory")
-	//deployCmd.Flags().BoolVarP(&isServerMode, "server", "s", false, "Run deploy server")
-	deployCmd.Flags().IntVarP(&timeout, "timeout", "t", 30, "timeout for deployment[minutes]")
-	deployCmd.Flags().StringVarP(&serverAddress, "bind", "b", "127.0.0.1", "bind address for deploy server")
-	deployCmd.Flags().IntVarP(&serverPort, "port", "p", 8443, "listen port for deploy server")
-	deployCmd.Flags().StringVarP(&serverAssetDir, "assetDir", "a", "", "asset root dir for deploy server, it not specify, use internal one")
+	deployCmd.Flags().StringVarP(&cmdArg.ServerUrl, "serverUrl", "u", "https://0.0.0.0:443", "server url")
+	deployCmd.Flags().StringVarP(&cmdArg.AssetDir, "assetDir", "a", "", "asset root dir for deploy server, it not specify, use internal one")
+	deployCmd.Flags().IntVarP(&cmdArg.Timeout, "timeout", "t", 30, "timeout for deployment[minutes]")
 }
 
 /**

@@ -1,8 +1,8 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"log"
 	"github.com/kabukky/httpscerts"
@@ -23,16 +23,31 @@ func (srv *BaseServer) Initialize(serverName string, args ...interface{}) bool {
 	return true
 }
 
-func (srv *BaseServer) ResetHttpRouter() {
-	srv.router = httprouter.New()
+//Run Server based on serverUrl
+func (srv *BaseServer) Run(serverUrl string) error {
+	u, err := url.Parse(serverUrl)
+	if err != nil {
+		return err
+	}
+
+	//u.Host is a host:port string
+	switch u.Scheme {
+	case "http":
+		return srv.RunHttp(u.Host)
+	case "https":
+		return srv.RunHttps(u.Host)
+	}
+
+	return nil
 }
 
-func (srv *BaseServer) RunHttp(bind string, port int) error {
-	listen := fmt.Sprintf("%s:%d", bind, port)
+//Run http server
+func (srv *BaseServer) RunHttp(listen string) error {
 	return http.ListenAndServe(listen, srv.router)
 }
 
-func (srv *BaseServer) RunHttps(bind string, port int) error {
+//Run https server
+func (srv *BaseServer) RunHttps(listen string) error {
 	// Check if the cert files are available.
 	if err := httpscerts.Check("cert.pem", "key.pem"); err != nil {
 		// If they are not available, generate new ones.
@@ -42,7 +57,6 @@ func (srv *BaseServer) RunHttps(bind string, port int) error {
 		}
 	}
 
-	listen := fmt.Sprintf("%s:%d", bind, port)
 	return http.ListenAndServeTLS(listen, "cert.pem", "key.pem", srv.router)
 }
 

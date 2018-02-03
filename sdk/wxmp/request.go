@@ -1,15 +1,21 @@
 package wxmp
 
 import (
-	"io/ioutil"
 	"log"
-	"net/http"
 	"encoding/xml"
 )
 
+// Common message header
+type RequestHeader struct {
+	ToUserName   string
+	FromUserName string
+	CreateTime   int
+	MsgType      string
+}
+
 // Weixin MP request
-type WxmpRequest struct {
-	MessageHeader
+type Request struct {
+	RequestHeader
 	MsgId        int64
 	Content      string
 	PicUrl       string
@@ -33,16 +39,9 @@ type WxmpRequest struct {
 	Status       string
 }
 
-//NewWxmpRequest: get WxmpRequest from http.Request
-func NewWxmpRequest(r *http.Request) *WxmpRequest {
-	// Process message
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println("NewWxmpRequest(): Error read http request body", err)
-		return nil
-	}
-
-	req := &WxmpRequest{}
+//NewWxmpRequest: get Request from http.Request
+func NewRequest(data []byte) *Request {
+	req := &Request{}
 	if err := xml.Unmarshal(data, &req); err != nil {
 		log.Println("NewWxmpRequest(): Error unmarshal wxmp message:", err)
 		return nil

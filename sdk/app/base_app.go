@@ -1,87 +1,98 @@
 package app
 
 import (
-	"encoding/json"
 	"log"
+	"errors"
 	"github.com/rfancn/wegigo/sdk/rabbitmq"
 )
 
 type BaseApp struct {
+	serverName string
 	rmqManager *rabbitmq.RabbitMQManager
 	appManager *AppManager
-	appInfo *AppInfo
-	queueName string
+	info       *AppInfo
+	//the queue to receive message from broker
+	receiveQueue string
+	currentApp IApp
+	rabbitMQBindHeaders map[string]interface{}
 }
 
+func (a *BaseApp)  GetAppInfo() *AppInfo {
+	return a.info
+}
 
-func (a *BaseApp) Initialize(appManager *AppManager, appInfo *AppInfo) {
+func (a *BaseApp) Initialize(serverName string, etcdUrl string, amqpUrl string, info *AppInfo, currentApp IApp) error {
 	log.Println("BaseApp Init")
 
-	if appManager == nil {
-		log.Fatal("BaseApp Initialize(): Null app manager")
+	a.serverName = serverName
+
+	rmqManager, err := rabbitmq.NewRabbitMQManager(amqpUrl)
+	if err != nil {
+		return err
 	}
 
-	if appInfo == nil {
-		log.Fatal("BaseApp Initialize(): Null app info")
+	appManager, err := NewAppManager(etcdUrl)
+	if err  != nil {
+		return err
 	}
 
 	a.appManager = appManager
-	a.appInfo = appInfo
-
-	a.SetupRabbitMQ()
-
-	//sync with etcd
-	a.SyncWithEtcd()
-}
-
-func (a *BaseApp) SetupRabbitMQ() {
-	a.rmqManager = rabbitmq.NewRabbitMQManager("127.0.0.1", 5672)
-
-	//1. declare exchange, as we already done in server initializing step, skip it here
-	a.rmqManager.DeclareTopicExchange("wxmp", false)
-
-	//2. desclar queue
-	a.queueName = a.rmqManager.DeclareQueue(a.appInfo.Uuid, false)
-	if a.queueName == "" {
-		log.Fatal("BaseApp SetupRabbitMQ(): Error DeclareQueue")
+	a.rmqManager = rmqManager
+	a.currentApp = currentApp
+	a.info = info
+	//sync info to etcd
+	if ! a.appManager.PutAppInfo(info) {
+		return errors.New("Error sync AppInfo to Etcd")
 	}
 
-	//3. bind queue to exchange
-	if ! a.rmqManager.BindQueue(a.queueName, "wxmp", a.appInfo.Name) {
-		log.Fatal("BaseApp SetupRabbitMQ(): Error BindQueue")
+	//init rabbitmq bind headers which will be used later
+	a.rabbitMQBindHeaders = map[string]interface{}{
+		//all argument need matched
+		"x-match": "all",
+		//each time the server will invoke app's match function before sending message,
+		//later we will set header with following key/values, and it will bind to exchange
+		//1. app's uuid <-> app's match() must be true
+		a.info.Uuid: "true",
 	}
+
+	return nil
 }
 
-func (a BaseApp) Run() {
-	log.Println("Run app:", a.appInfo.Name)
+func (a *BaseApp) Consume() {
+	//1. declare exchange
+	a.rmqManager.DeclareHeadersExchange(a.serverName)
 
-	msgs := a.rmqManager.Consume(a.queueName)
-	for m := range msgs {
-		log.Printf(" [x] %s", m.Body)
+	//2. declare a receive queue
+	qName := a.rmqManager.DeclareTempQueue()
+	if qName == "" {
+		log.Fatalf("[ERROR] BaseApp Consume(): Error declare temp receive queue")
 	}
-}
 
-//GetAppInfoBytes: json marshal AppInfo and returns the string
-func (a *BaseApp) GetAppInfoBytes() []byte {
-	bv,err := json.Marshal(a.appInfo)
+	if !  a.rmqManager.BindQueueWithHeaders(qName, a.serverName, a.rabbitMQBindHeaders) {
+		log.Fatalf("[ERROR] BaseApp Consume(): Error bind queue with headers")
+	}
+
+	//receive queue created by server, use the app's uuid as queue name
+	ch, messages, err := a.rmqManager.Consume(qName)
+	defer ch.Close()
 	if err != nil {
-		log.Printf("BaseApp GetAppInfoBytes(): Error marshal AppInfo:%v", err)
-		return nil
+		log.Fatalf("[ERROR] BaseApp Consume(): Error consume queue:%s\n",err)
 	}
 
-	return bv
+	for msg := range messages {
+		//spaw a go routine to procedd message
+		go a.currentApp.Process(msg.ReplyTo, msg.CorrelationId, msg.Body)
+	}
 }
 
-func (a *BaseApp) SyncWithEtcd() {
-	dbAppInfoBytes := a.appManager.GetAppInfoBytes(a.appInfo.Uuid)
-	if dbAppInfoBytes == nil {
-		a.appManager.PutAppInfo(a.appInfo.Uuid, a.appInfo)
-		return
+func (a *BaseApp) Run(concurrency int) {
+	log.Println("Run app:", a.info.Name)
+	for j := 0; j < concurrency; j++ {
+		go a.Consume()
 	}
+}
 
-	//if appinfo fetched from db don't equal to the current one
-	//sync the curernt one to db
-	if string(dbAppInfoBytes) != string(a.GetAppInfoBytes()) {
-		a.appManager.PutAppInfo(a.appInfo.Uuid, a.appInfo)
-	}
+func (a BaseApp) Response(replyQueueName string, corrId string, data []byte) {
+	//a.rmqManager.TopicPublishJson(a.serverName, "reply."+ a.info.Uuid, data)
+	a.rmqManager.RPCReplyJson(replyQueueName, corrId, data)
 }

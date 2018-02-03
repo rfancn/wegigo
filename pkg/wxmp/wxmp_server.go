@@ -5,74 +5,71 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"context"
 	"github.com/rfancn/wegigo/sdk/server"
-	"github.com/rfancn/wegigo/sdk/etcd"
 	"github.com/rfancn/wegigo/sdk/app"
 	"github.com/rfancn/wegigo/sdk/rabbitmq"
 )
 
 const SERVER_NAME = "wxmp"
 
+//command argument passed from cmd package
+type WxmpCmdArgument struct {
+	ServerUrl   string
+	EtcdUrl 	string
+	RabbitmqUrl	string
+
+	//Asset dir
+	AssetDir        string
+	//application plugins dir
+	AppPluginDir 	string
+	//test concurrency for app worker, it will moved to etcd config in the future
+	AppConcurrency     int
+}
+
 type WxmpServer struct {
 	server.SimpleServer
-
-	//server config
-
-
+	//command argument
+	cmdArg 			*WxmpCmdArgument
 	// all kinds of managers
-	etcdManager 	*etcd.EtcdManager
 	appManager 		*app.AppManager
 	rmqManager 		*rabbitmq.RabbitMQManager
 
-	appsDir string
-	ctx context.Context
-
-	//stop channel to indicate
-	stopChan chan struct{}
+	// config store
+	appLoader      *AppLoader
 }
 
-func NewWxmpServer(serverName string, appsDir string, assetDir string, etcdAddress string, etcdPort int, rabbitmqAddress string, rabbitmqPort int) *WxmpServer {
+func NewWxmpServer(serverName string, arg *WxmpCmdArgument) *WxmpServer {
 	srv := &WxmpServer{}
 
-	if ! srv.SimpleServer.Initialize(serverName, assetDir, Asset, AssetDir, AssetInfo) {
+	if ! srv.SimpleServer.Initialize(serverName, arg.AssetDir, Asset, AssetDir, AssetInfo) {
 		return nil
 	}
 
-	//new all kinds of manager
-	etcdManager := etcd.NewEtcdManager(etcdAddress, etcdPort)
-	if etcdManager == nil {
-		log.Println("NewWxmpServer(): Error create etcd manager")
+	appManager, err := app.NewAppManager(arg.EtcdUrl)
+	if err != nil {
+		log.Println("NewWxmpServer(): Error create app manager:", err)
 		return nil
 	}
 
-	appManager := app.NewAppManager(etcdManager)
-	if appManager == nil {
-		log.Println("NewWxmpServer(): Error create app manager")
-		return nil
-	}
-
-	rmqManager := rabbitmq.NewRabbitMQManager(rabbitmqAddress, rabbitmqPort)
-	if rmqManager == nil {
-		log.Println("NewWxmpServer(): Error create rabbitmq manager")
+	rmqManager, err := rabbitmq.NewRabbitMQManager(arg.RabbitmqUrl)
+	if err != nil {
+		log.Println("NewWxmpServer(): Error create rabbitmq manager:", err)
 		return nil
 	}
 
 	//assign to server instance
-	srv.appsDir = appsDir
-	srv.stopChan = make(chan struct{})
-	srv.etcdManager = etcdManager
+	srv.cmdArg = arg
 	srv.appManager = appManager
 	srv.rmqManager = rmqManager
+	srv.appLoader = NewAppLoader(srv)
 
 	return srv
 }
 
-
-func Run(appsDir string, assetDir string, etcdAddress string, etcdPort int, rabbitmqAddress string, rabbitmqPort int) {
+func Run(cmdArg *WxmpCmdArgument) {
 	log.Printf("Run Wechat Media Platform Server")
 
-	srv := NewWxmpServer(SERVER_NAME, appsDir, assetDir, etcdAddress, etcdPort, rabbitmqAddress, rabbitmqPort)
+	srv := NewWxmpServer(SERVER_NAME, cmdArg)
 	if srv == nil {
 		log.Fatal("Error create wxmp server")
 	}
@@ -81,18 +78,18 @@ func Run(appsDir string, assetDir string, etcdAddress string, etcdPort int, rabb
 	//setup graceful shutdown handler
 	srv.setupShutdownHandler()
 
-	srv.discoverApps()
+	//server's amqp must be setup before discovering apps
+	srv.SetupAMQP()
+
+	srv.appLoader.Load()
 
 	srv.setupRouter()
 
-	err := srv.RunHttps("0.0.0.0", 443)
+	err := srv.Run(cmdArg.ServerUrl)
 	if err != nil {
 		log.Fatal("Error start wxmp server:", err)
 	}
-
-	//log.Println("Enabled UUIDs:", srv.remoteConfig.GetAppUuids("enabled"))
 }
-
 
 func (srv *WxmpServer) setupShutdownHandler() {
 	gracefulShutdownChan := make(chan os.Signal, 2)
@@ -105,7 +102,6 @@ func (srv *WxmpServer) setupShutdownHandler() {
 }
 
 func (srv *WxmpServer) Close() {
-	close(srv.stopChan)
 	srv.rmqManager.Close()
-	srv.etcdManager.Close()
+	srv.appManager.Close()
 }

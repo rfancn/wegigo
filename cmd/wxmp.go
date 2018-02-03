@@ -6,14 +6,7 @@ import (
 	"github.com/rfancn/wegigo/pkg/wxmp"
 )
 
-var (
-	etcdAddress string
-	etcdPort int
-	rabbitmqAddress string
-	rabbitmqPort int
-	assetDir string
-	appsDir string
-)
+var wxmpCmdArg = &wxmp.WxmpCmdArgument{}
 
 var wxmpCmd = &cobra.Command{
 	Use:   "wxmp",
@@ -21,19 +14,21 @@ var wxmpCmd = &cobra.Command{
 	Long: "Wegigo proxy recevie outside http requests and routed to MessageBroker",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("Run Server")
-
-		wxmp.Run(appsDir, assetDir, etcdAddress, etcdPort, rabbitmqAddress, rabbitmqPort)
+		wxmp.Run(wxmpCmdArg)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(wxmpCmd)
 
-	wxmpCmd.Flags().StringVarP(&etcdAddress, "etcdAddress", "", "127.0.0.1", "etcd address")
-	wxmpCmd.Flags().IntVarP(&etcdPort, "etcdPort", "", 2379, "etcd port")
-	wxmpCmd.Flags().StringVarP(&rabbitmqAddress, "rabbitmqAddress", "", "localhost", "rabbitmq address")
-	wxmpCmd.Flags().IntVarP(&rabbitmqPort, "rabbitmqPort", "", 5672, "rabbitmq port")
+	wxmpCmd.Flags().StringVarP(&wxmpCmdArg.ServerUrl, "serverUrl", "", "http://127.0.0.1:80", "server url")
+	wxmpCmd.Flags().StringVarP(&wxmpCmdArg.EtcdUrl, "etcdUrl", "", "http://127.0.0.1:2379", "etcd url")
 
-	wxmpCmd.Flags().StringVarP(&assetDir, "assetDir", "a", "", "external asset root dir for wegigo server")
-	wxmpCmd.Flags().StringVarP(&appsDir, "appsDir", "i", "apps", "app modules dir")
+	wxmpCmd.Flags().StringVarP(&wxmpCmdArg.RabbitmqUrl, "rabbitmqUrl", "", "amqp://guest:guest@127.0.0.1:5672/", "rabbitmq url")
+
+	wxmpCmd.Flags().StringVarP(&wxmpCmdArg.AssetDir, "assetDir", "a", "", "external asset dir")
+	wxmpCmd.Flags().StringVarP(&wxmpCmdArg.AppPluginDir, "appPluginDir", "p", "apps", "app plugin dir")
+
+	wxmpCmd.Flags().IntVarP(&wxmpCmdArg.AppConcurrency, "appConcurrency", "", 1, "concurrency number")
+
 }

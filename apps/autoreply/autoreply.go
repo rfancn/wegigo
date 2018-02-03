@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 	"github.com/rfancn/wegigo/sdk/app"
+	"github.com/rfancn/wegigo/sdk/wxmp"
+	"encoding/json"
+	"time"
 )
-
-//go:generate go-bindata -o apps/autoreply/bindata.go apps/autoreply/asset/...
-//var FOR_SERVER = "wxmp"
 
 var APP_INFO = &app.AppInfo{
 	Uuid: "9856d61b-e9fe-4346-b64d-dcd1102f2719",
@@ -20,16 +20,36 @@ type autoReplyApp struct {
 	app.BaseApp
 }
 
-func (a *autoReplyApp) Init(appManager *app.AppManager) error {
+func (a *autoReplyApp) Init(serverName string, etcdUrl string, amqpUrl string) error {
 	log.Println("autoReplyApp Init")
+	return a.BaseApp.Initialize(serverName, etcdUrl, amqpUrl, APP_INFO, a)
+}
 
-	a.BaseApp.Initialize(appManager, APP_INFO)
+func (a *autoReplyApp) Match(data []byte) bool{
+	wxmpRequest := wxmp.NewRequest(data)
+	if wxmpRequest.MsgType == "text" && wxmpRequest.Content == "test" {
+		return true
+	}
+	return false
+}
 
-	return nil
+func (a *autoReplyApp) Process(replyQueueName string, correlationId string, data []byte) {
+	wxmpRequest := &wxmp.Request{}
+	err := json.Unmarshal(data, &wxmpRequest)
+	if err != nil {
+		log.Println("Error unmarsh amqp message to WxmpRequest:", err)
+		return
+	}
+
+	log.Println("AutoReply received:", wxmpRequest.Content)
+
+	time.Sleep(3 * time.Second)
+
+	replyContent := wxmp.NewReply(wxmpRequest).ReplyText("echo:" + wxmpRequest.Content)
+	a.Response(replyQueueName, correlationId, replyContent)
 }
 
 var App autoReplyApp
-
 
 
 

@@ -7,13 +7,7 @@ import (
 	"fmt"
 )
 
-// Common message header
-type MessageHeader struct {
-	ToUserName   string
-	FromUserName string
-	CreateTime   int
-	MsgType      string
-}
+
 
 func CheckSignature(token string, timestamp string, nonce string, signature string) bool {
 	strs := []string{token, timestamp, nonce}

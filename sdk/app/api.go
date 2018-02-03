@@ -10,11 +10,8 @@ const ETCD_APP_INFO_URL =  "/app/info"
 const ETCD_APP_ENABLED_URL = "/app/enabled"
 const ETCD_APP_CONFIG_URL = "/app/config"
 
-//uuid start position in key
-const ETCD_APP_ROOT_UUID_START_POS = len(ETCD_APP_ROOT_URL) + 1
-
-
-
+//exported symbol
+const EXPORT_SYMBOL_NAME = "App"
 
 /*
 Registry: Register to available app list
@@ -23,8 +20,14 @@ Disable: 1. update etcd app configuration 2. destroy proxy instance or remove th
 Uninstall: 1. clean etcd app setting 2. remove from app server docker image
  */
 type IApp interface {
-	Init(appManager *AppManager) error
-	Run()
+	Init(serverName string, etcdUrl string, amqpUrl string) error
+	GetAppInfo() *AppInfo
+	//check if passed data is matched or not,
+	//if matched, then message will send to app's queue
+	//else, no message will be recevied
+	Match(data []byte) 		bool
+	Run(concurrency int)
+	Process(replyQueueName string, correlationId string, data []byte)
 }
 
 //App basic info
@@ -36,5 +39,5 @@ type AppInfo struct {
 	Desc  string
 }
 
-//specific app setting
-type AppConfig struct {}
+
+

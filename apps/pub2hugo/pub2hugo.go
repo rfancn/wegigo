@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"github.com/rfancn/wegigo/sdk/app"
+	"encoding/json"
+	"time"
 )
 
 //go:generate go-bindata -o apps/autoreply/bindata.go apps/autoreply/asset/...
@@ -23,6 +25,23 @@ func (a *publishToHugo) Init(appManager *app.AppManager) error {
 	log.Println("hugoAutoPublish Init")
 
 	a.BaseApp.Initialize(appManager, APP_INFO)
+
+	return nil
+}
+
+func (a *publishToHugo) Proceed(data []byte) []byte{
+	wxmpRequest := &wxmp.Request{}
+	err := json.Unmarshal(data, &wxmpRequest)
+	if err != nil {
+		log.Println("Error unmarsh amqp message to WxmpRequest:", err)
+		return nil
+	}
+
+	log.Println("AutoReply received:", wxmpRequest.Content)
+
+	time.Sleep(3 * time.Second)
+
+	a.Response(wxmp.NewReply(wxmpRequest).ReplyText("echo:" + wxmpRequest.Content))
 
 	return nil
 }

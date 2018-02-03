@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"encoding/json"
-	"fmt"
 	"github.com/coreos/etcd/clientv3"
 )
 
@@ -12,19 +11,17 @@ type EtcdManager struct {
 	cli *clientv3.Client
 }
 
-func NewEtcdManager(address string, port int) *EtcdManager {
-	etcdServerUrl := fmt.Sprintf("http://%s:%d", address, port)
+func NewEtcdManager(url string) (*EtcdManager, error) {
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{etcdServerUrl},
+		Endpoints:   []string{url},
 		DialTimeout: ETCD_CONNECT_TIMEOUT,
 	})
 
 	if err != nil {
-		log.Println("NewEtcdManager(): Error connect etcd server:", err)
-		return nil
+		return nil, err
 	}
 
-	return &EtcdManager{cli: cli}
+	return &EtcdManager{cli: cli}, nil
 }
 
 func (m *EtcdManager) Close() {

@@ -1,30 +1,29 @@
 package rabbitmq
 
 import (
-	"fmt"
 	"log"
 	"github.com/streadway/amqp"
 )
 
 type RabbitMQManager struct {
-	Conn *amqp.Connection
-	Ch *amqp.Channel
+	Conn        *amqp.Connection
+	mainChannel *amqp.Channel
 }
 
 //NewRabbitMQManager: new rabbitmq manager
-func NewRabbitMQManager(address string, port int) *RabbitMQManager {
-	connStr := fmt.Sprintf("amqp://guest:guest@%s:%d/", address, port)
-	conn, err := amqp.Dial(connStr)
+func NewRabbitMQManager(url string) (*RabbitMQManager, error) {
+	conn, err := amqp.Dial(url)
 	if err != nil {
-		log.Fatal("NewRabbitMQManager(): Error connect to RabbitMQ server:", err)
+		return nil, err
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatal("NewRabbitMQManager(): Error open RabbitMQ channel:", err)
+		conn.Close()
+		return nil, err
 	}
 
-	return &RabbitMQManager{conn, ch}
+	return &RabbitMQManager{conn, ch}, nil
 }
 
 //
@@ -41,7 +40,7 @@ func NewRabbitMQManager(address string, port int) *RabbitMQManager {
 //nowait: If set, the server will not respond to the method.
 //The client should not wait for a reply method. If the server could not complete the method it will raise a channel or connection exception.
 func (m *RabbitMQManager) DeclareTopicExchange(name string, durable bool) bool {
-	err := m.Ch.ExchangeDeclare(
+	err := m.mainChannel.ExchangeDeclare(
 		name,
 		"topic",
 		durable,
@@ -57,27 +56,35 @@ func (m *RabbitMQManager) DeclareTopicExchange(name string, durable bool) bool {
 	return true
 }
 
-//mandatory: This flag tells the server how to react if the message cannot be routed to a queue.
-// If this flag is set, the server will return an unroutable message with a Return method.
-// If this flag is zero, the server silently drops the message.
-//
-//immediate: This flag tells the server how to react if the message cannot be routed to a queue consumer immediately.
-// If this flag is set, the server will return an undeliverable message with a Return method.
-// If this flag is zero, the server will queue the message, but with no guarantee that it will ever be consumed.
-//The server SHOULD implement the immediate flag.
-func (m *RabbitMQManager) TopicPublish(exchangeName string, routingKey string, contentType string, content []byte) bool {
-	err := m.Ch.Publish(
-		exchangeName,
-		routingKey,
-		false, // mandatory
-		false, // immediate
-		amqp.Publishing{
-			ContentType: contentType,
-			Body:        content,
-		})
+func (m *RabbitMQManager) DeclareDirectExchange(name string, durable bool) bool {
+	err := m.mainChannel.ExchangeDeclare(
+		name,
+		"direct",
+		durable,
+		false, //autoDelete
+		false, //internal
+		false, //noWait
+		nil)
 
 	if err != nil {
-		log.Println("RabbitMQManager TopicPublish(): Error publish topic message:", err)
+		log.Println("RabbitMQManager DeclareDirectExchange(): Error declar direct exchane:", err)
+		return false
+	}
+	return true
+}
+
+func (m *RabbitMQManager) DeclareHeadersExchange(name string) bool {
+	err := m.mainChannel.ExchangeDeclare(
+		name,
+		"headers",
+		false, //durable
+		false, //autoDelete
+		false, //internal
+		false, //noWait
+		nil)
+
+	if err != nil {
+		log.Println("RabbitMQManager DeclareDirectExchange(): Error declar direct exchane:", err)
 		return false
 	}
 	return true
@@ -97,10 +104,28 @@ func (m *RabbitMQManager) TopicPublish(exchangeName string, routingKey string, c
 // If there was no consumer ever on the queue, it won't be deleted.
 // Applications can explicitly delete auto-delete queues using the Delete method as normal.
 func (m *RabbitMQManager) DeclareQueue(name string, durable bool) string {
-	q, err := m.Ch.QueueDeclare(
+	q, err := m.mainChannel.QueueDeclare(
 		name,    // name
 		durable, // durable
 		false, // autoDelete
+		false,  // exclusive
+		false, // no-wait
+		nil,   // arguments
+	)
+
+	if err != nil {
+		log.Println("RabbitMQManager DeclareQueue(): Error declare queue:", err)
+		return ""
+	}
+
+	return q.Name
+}
+
+func (m *RabbitMQManager) DeclareTempQueue() string {
+	q, err := m.mainChannel.QueueDeclare(
+		"",    // name
+		false, // durable
+		true,  // autoDelete
 		false,  // exclusive
 		false, // no-wait
 		nil,   // arguments
@@ -119,7 +144,7 @@ func (m *RabbitMQManager) DeclareQueue(name string, durable bool) string {
 // In a classic messaging model, store-and-forward queues are bound to a direct exchange
 // and subscription queues are bound to a topic exchange.
 func (m *RabbitMQManager) BindQueue(queueName string, exchangeName string, routingKey string) bool {
-	err := m.Ch.QueueBind(
+	err := m.mainChannel.QueueBind(
 		queueName,     // queue name
 		routingKey,    // routing key
 		exchangeName,  // exchange name
@@ -133,8 +158,43 @@ func (m *RabbitMQManager) BindQueue(queueName string, exchangeName string, routi
 	return true
 }
 
-func (m *RabbitMQManager) Consume(queueName string) <-chan amqp.Delivery {
-	messages, err := m.Ch.Consume(
+//This method binds a queue to an exchange.
+// Until a queue is bound it will not receive any messages.
+// In a classic messaging model, store-and-forward queues are bound to a direct exchange
+// and subscription queues are bound to a topic exchange.
+func (m *RabbitMQManager) BindQueueWithHeaders(queueName string, exchangeName string, headers map[string]interface{}) bool {
+	err := m.mainChannel.QueueBind(
+		queueName,     // queue name
+		"",            // routing key
+		exchangeName,  // exchange name
+		false,        //no-wait
+		headers)           //arguments
+
+	if err != nil {
+		log.Println("RabbitMQManager BindQueue(): Error bind queue:to exchange", err)
+		return false
+	}
+	return true
+}
+
+
+func (m *RabbitMQManager) Consume(queueName string) (*amqp.Channel, <-chan amqp.Delivery, error) {
+	ch, err := m.Conn.Channel()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = ch.Qos(
+		1,     // prefetch count
+		0,     // prefetch size
+		false, // global
+	)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	messages, err := ch.Consume(
 		queueName, // queue
 		"",     // consumer
 		true,   // auto ack
@@ -145,18 +205,187 @@ func (m *RabbitMQManager) Consume(queueName string) <-chan amqp.Delivery {
 	)
 
 	if err != nil {
-		log.Println("RabbitMQManager Consume(): Error consume message:", err)
-		return nil
+		return nil, nil, err
 	}
-	return messages
+
+	return ch, messages, nil
 }
 
+//mandatory: This flag tells the server how to react if the message cannot be routed to a queue.
+// If this flag is set, the server will return an unroutable message with a Return method.
+// If this flag is zero, the server silently drops the message.
+//
+//immediate: This flag tells the server how to react if the message cannot be routed to a queue consumer immediately.
+// If this flag is set, the server will return an undeliverable message with a Return method.
+// If this flag is zero, the server will queue the message, but with no guarantee that it will ever be consumed.
+//The server SHOULD implement the immediate flag.
+func (m *RabbitMQManager) TopicPublishText(exchangeName string, routingKey string, content []byte) bool {
+	ch, err := m.Conn.Channel()
+	if err != nil {
+		return false
+	}
+	defer ch.Close()
+
+	err = ch.Publish(
+		exchangeName,
+		routingKey,
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        content,
+		})
+
+	if err != nil {
+		log.Println("RabbitMQManager TopicPublish(): Error publish topic message:", err)
+		return false
+	}
+
+	return true
+}
+
+func (m *RabbitMQManager) TopicPublishJson(exchangeName string, routingKey string, content []byte) bool {
+	ch, err := m.Conn.Channel()
+	if err != nil {
+		return false
+	}
+	defer ch.Close()
+
+	err = ch.Publish(
+		exchangeName,
+		routingKey,
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        content,
+		})
+
+	if err != nil {
+		log.Println("RabbitMQManager TopicPublish(): Error publish topic message:", err)
+		return false
+	}
+	return true
+}
+
+func (m *RabbitMQManager) PublishJsonWithHeaders(exchangeName string, headers map[string]interface{}, content []byte) bool {
+	ch, err := m.Conn.Channel()
+	if err != nil {
+		return false
+	}
+	defer ch.Close()
+
+	err = ch.Publish(
+		exchangeName,
+		"",
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			Headers: headers,
+			ContentType: "application/json",
+			Body:        content,
+		})
+
+	if err != nil {
+		log.Println("RabbitMQManager TopicPublish(): Error publish topic message:", err)
+		return false
+	}
+	return true
+}
+
+
+func (m *RabbitMQManager) RPCPublishJson(exchangeName string, routingKey string, replyQueueName string, corrId string, content []byte) bool {
+	ch, err := m.Conn.Channel()
+	if err != nil {
+		return false
+	}
+	defer ch.Close()
+
+	err = ch.Publish(
+		exchangeName,
+		routingKey,
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			ReplyTo: replyQueueName,
+			CorrelationId: corrId,
+			Body:        content,
+		})
+
+	if err != nil {
+		log.Println("RabbitMQManager RPCPublishJson(): Error publish json message:", err)
+		return false
+	}
+	return true
+}
+
+func (m *RabbitMQManager) RPCPublishJsonWithHeaders(exchangeName string, headers map[string]interface{}, replyQueueName string, corrId string, content []byte) bool {
+	ch, err := m.Conn.Channel()
+	if err != nil {
+		return false
+	}
+	defer ch.Close()
+
+	err = ch.Publish(
+		exchangeName,
+		"",
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			Headers: headers,
+			ContentType: "application/json",
+			ReplyTo: replyQueueName,
+			CorrelationId: corrId,
+			Body:        content,
+		})
+
+	if err != nil {
+		log.Println("RabbitMQManager RPCPublishJsonWithHeaders(): Error publish json message:", err)
+		return false
+	}
+	return true
+}
+
+func (m *RabbitMQManager) RPCReplyJson(replyQueueName string, corrId string, content []byte) bool {
+	ch, err := m.Conn.Channel()
+	if err != nil {
+		return false
+	}
+	defer ch.Close()
+
+	err = ch.Publish(
+		"",
+		replyQueueName,
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			CorrelationId: corrId,
+			Body:        content,
+		})
+
+	if err != nil {
+		log.Println("RabbitMQManager RPCReplyJson(): Error reply json message:", err)
+		return false
+	}
+	return true
+}
+
+func (m *RabbitMQManager) InspectQueue(qName string) (noAckMsgs int, consumers int, ok bool) {
+	q, err := m.mainChannel.QueueInspect(qName)
+	if err != nil {
+		log.Println("RabbitMQManager InspectQueue(): Error inspect queue:", err)
+		return 0,0, false
+	}
+	return q.Messages, q.Consumers, true
+}
 
 
 //close rabbitmq channel and connections
 func (m *RabbitMQManager) Close() {
-	if m.Ch != nil {
-		err := m.Ch.Close()
+	if m.mainChannel != nil {
+		err := m.mainChannel.Close()
 		if err != nil {
 			log.Println("RabbitMQManager Close(): Error close RabbitMQ channel:", err)
 		}

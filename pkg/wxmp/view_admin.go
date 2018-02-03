@@ -10,7 +10,7 @@ func (srv *WxmpServer) ViewAdminIndex(w http.ResponseWriter, r *http.Request) {
 	log.Println("admin index")
 
 	context := make(map[string]interface{})
-	context["enabledApps"] = srv.appManager.GetEnabledApps()
+	context["enabledApps"] = srv.appManager.GetEnabledAppInfos()
 
 	srv.RespRender(w, "index.html", context)
 }
@@ -19,7 +19,7 @@ func (srv *WxmpServer) ViewAppAdminIndex(w http.ResponseWriter, r *http.Request)
 	log.Println("app index")
 
 	context := make(map[string]interface{})
-	context["enabledApps"] = srv.appManager.GetEnabledApps()
+	context["enabledApps"] = srv.appManager.GetEnabledAppInfos()
 	context["appInfoMap"] = srv.appManager.GetAppInfoMap()
 
 	srv.RespRender(w, "app.html", context)

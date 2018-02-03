@@ -10,6 +10,8 @@ import (
 	"io"
 )
 
+const SERVER_NAME = "deploy"
+
 type ServerStatus int
 
 const (
@@ -19,10 +21,15 @@ const (
 	STATUS_DEPLOY_STARTED
 )
 
-const SERVER_NAME = "deploy"
+type CmdArgument struct {
+	ServerUrl string
+	AssetDir  string
+	Timeout   int
+}
 
 type DeployServer struct {
 	server.SimpleServer
+	cmdArg      *CmdArgument
 	y2h 		*goy2h.Y2H
 	status  	ServerStatus
 	response    *ServerJsonResponse
@@ -34,11 +41,11 @@ type ServerJsonResponse struct {
 	Detail string
 }
 
-func NewDeployServer(serverName string, assetDir string) *DeployServer {
+func NewDeployServer(serverName string, cmdArg *CmdArgument) *DeployServer {
 	srv := &DeployServer{}
 
 	//when initialize simpleserver, the first argument must be assetDir
-	if ! srv.SimpleServer.Initialize(serverName, assetDir, Asset, AssetDir, AssetInfo) {
+	if ! srv.SimpleServer.Initialize(serverName, cmdArg.AssetDir, Asset, AssetDir, AssetInfo) {
 		return nil
 	}
 
@@ -51,10 +58,10 @@ func NewDeployServer(serverName string, assetDir string) *DeployServer {
 	return srv
 }
 
-func RunServerMode(bind string, port int, assetDir string, timeout int) {
-	log.Printf("Run deploy Server at: https://%s:%d/\n", bind, port)
+func Run(cmdArg *CmdArgument) {
+	log.Println("Run deploy Server at:", cmdArg.ServerUrl)
 
-	srv := NewDeployServer(SERVER_NAME, assetDir)
+	srv := NewDeployServer(SERVER_NAME, cmdArg)
 	if srv == nil {
 		log.Fatal("Error create deploy server")
 	}
@@ -64,7 +71,7 @@ func RunServerMode(bind string, port int, assetDir string, timeout int) {
 
 	srv.setupRouter()
 
-	err := srv.RunHttps(bind, port)
+	err := srv.Run(cmdArg.ServerUrl)
 	if err != nil {
 		log.Fatal("Error start deploy server:", err)
 	}
