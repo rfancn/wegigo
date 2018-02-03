@@ -4,7 +4,6 @@ import (
 	"log"
 	"github.com/rfancn/wegigo/sdk/app"
 	"github.com/rfancn/wegigo/sdk/wxmp"
-	"encoding/json"
 	"time"
 )
 
@@ -34,10 +33,9 @@ func (a *autoReplyApp) Match(data []byte) bool{
 }
 
 func (a *autoReplyApp) Process(replyQueueName string, correlationId string, data []byte) {
-	wxmpRequest := &wxmp.Request{}
-	err := json.Unmarshal(data, &wxmpRequest)
-	if err != nil {
-		log.Println("Error unmarsh amqp message to WxmpRequest:", err)
+	wxmpRequest := wxmp.NewRequest(data)
+	if wxmpRequest == nil {
+		log.Println("autoReplyApp Process(): Error new WxmpRequest:%s", string(data))
 		return
 	}
 
