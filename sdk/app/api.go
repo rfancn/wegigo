@@ -26,17 +26,18 @@ type IApp interface {
 	//if matched, then message will send to app's queue
 	//else, no message will be recevied
 	Match(data []byte) 		bool
-	Run(concurrency int)
-	Process(replyQueueName string, correlationId string, data []byte)
+	Start(concurrency int)
+	Stop()
+	Process(data []byte) 	[]byte
 }
 
 //App basic info
 type AppInfo struct {
-	Uuid  string
-	Name  string
+	Uuid  	string
+	Name  	string
 	Version string
-	Author string
-	Desc  string
+	Author 	string
+	Desc  	string
 }
 
 

@@ -6,33 +6,53 @@ import (
 	"path/filepath"
 )
 
-//GetEnabledAppInfos: get enabled apps, return is a map[string]string
-//key is: app uuid, value is: app name
-func (m *AppManager) GetEnabledAppInfos() map[string]string {
-	bv := m.etcdManager.GetBytes(ETCD_APP_ENABLED_URL)
+//GetEnabledAppKVs: get enabled apps, return is a map[string]string
+//key is: app Uuid, value is: app name
+func (m *AppManager) GetEnabledAppKVs() map[string]string {
+	bv := m.etcdManager.GetValue(ETCD_APP_ENABLED_URL)
 
-	enabledAppInfos := make(map[string]string)
-	if err := json.Unmarshal(bv, &enabledAppInfos); err != nil {
-		log.Printf("AppManager GetEnabledAppInfos(): Error unmarshal map[string]string:%v", err)
-		return nil
+	enabledAppKVs := make(map[string]string)
+	if err := json.Unmarshal(bv, &enabledAppKVs); err != nil {
+		log.Printf("AppManager GetEnabledAppUuids(): Error unmarshal map[string]string:%v", err)
+		return enabledAppKVs
 	}
 
-	return enabledAppInfos
+	return enabledAppKVs
 }
 
-//EnableApp: forcefully sync the [uuid]=name map to /app/enabled
+//GetEnabledAppUuids: get enabled app Uuids
+func (m *AppManager) GetEnabledAppUuids() []string {
+	enabledAppKVs := m.GetEnabledAppKVs()
+
+	enabledAppIds := make([]string,0)
+	for Uuid, _ := range enabledAppKVs {
+		enabledAppIds = append(enabledAppIds, Uuid)
+	}
+
+	return enabledAppIds
+}
+
+//EnableApp: forcefully sync the [Uuid]=name map to /app/enabled
 //if someone change the app name, here forcefully sync without check if it exist or not
 //will still sync the latest info to /app/enabled
-func (m *AppManager) EnableApp(uuid string, name string) bool {
-	item := make(map[string]string)
-	item[uuid] = name
-	return m.etcdManager.PutValue(filepath.Join(ETCD_APP_ENABLED_URL, uuid), item)
+func (m *AppManager) EnableApp(Uuid string, name string) bool {
+	kvs := m.GetEnabledAppKVs()
+	kvs[Uuid] = name
+	return m.etcdManager.PutValue(filepath.Join(ETCD_APP_ENABLED_URL), kvs)
 }
 
-func (m *AppManager) DisableApp(uuid string) bool {
-	return m.etcdManager.Delete(filepath.Join(ETCD_APP_ENABLED_URL, uuid))
+func (m *AppManager) DisableApp(Uuid string) bool {
+	kvs := m.GetEnabledAppKVs()
+
+	_, ok := kvs[Uuid];
+	if ok {
+		delete(kvs, Uuid);
+	}
+
+	return m.etcdManager.PutValue(filepath.Join(ETCD_APP_ENABLED_URL), kvs)
 }
 
+/**
 func (m *AppManager) WatchEnabledApps(enabledApps map[string]string) (chan struct{}){
 	stopChan := make(chan struct{})
 
@@ -45,7 +65,7 @@ func (m *AppManager) WatchEnabledApps(enabledApps map[string]string) (chan struc
 			case watchResp := <-watchChan:
 				for _, ev := range watchResp.Events {
 					log.Printf("%s %q : %q\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
-					enabledApps = m.GetEnabledAppInfos()
+					enabledApps = m.GetEnabledAppUuids()
 				}
 			case <-stopChan:
 				log.Println("Quit WatchEnabledApps() routine")
@@ -56,4 +76,4 @@ func (m *AppManager) WatchEnabledApps(enabledApps map[string]string) (chan struc
 
 	return stopChan
 }
-
+**/

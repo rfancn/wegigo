@@ -6,16 +6,16 @@ import (
 	"encoding/json"
 )
 
-//GetAppInfoString: get AppInfo as bytes by uuid
-func (m *AppManager) GetAppInfoBytes(uuid string) []byte {
-	return m.etcdManager.GetBytes(filepath.Join(ETCD_APP_INFO_URL, uuid))
+//GetAppInfoString: get AppInfo as bytes by Uuid
+func (m *AppManager) GetAppInfoBytes(Uuid string) []byte {
+	return m.etcdManager.GetValue(filepath.Join(ETCD_APP_INFO_URL, Uuid))
 }
 
-//GetAppInfo: get AppInfo object from etcd by uuid
-func (m *AppManager) GetAppInfo(uuid string) *AppInfo {
-	appInfoBytes := m.GetAppInfoBytes(uuid)
+//GetAppInfo: get AppInfo object from etcd by Uuid
+func (m *AppManager) GetAppInfo(Uuid string) *AppInfo {
+	appInfoBytes := m.GetAppInfoBytes(Uuid)
 	if appInfoBytes == nil {
-		log.Println("AppManager GetAppInfo(): No such app info for:", uuid)
+		log.Println("AppManager GetAppInfo(): No such app info for:", Uuid)
 		return nil
 	}
 
@@ -31,9 +31,9 @@ func (m *AppManager) GetAppInfo(uuid string) *AppInfo {
 
 
 //GetAppInfoMap: get current appconfig map in etcd
-// key: app uuid, value: AppConfig
+// key: app Uuid, value: AppConfig
 func (m *AppManager) GetAppInfoMap() map[string]*AppInfo{
-	appInfoList := m.etcdManager.GetBytesList(ETCD_APP_INFO_URL)
+	appInfoList := m.etcdManager.GetValueList(ETCD_APP_INFO_URL)
 
 	appInfoMap := make(map[string]*AppInfo)
 	for _, appInfoBytes := range appInfoList {

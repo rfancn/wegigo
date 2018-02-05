@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"log"
 	"github.com/spf13/cobra"
 	"github.com/rfancn/wegigo/pkg/wxmp"
 )
@@ -13,7 +12,6 @@ var wxmpCmd = &cobra.Command{
 	Short: "Run Wechat Media Platform App server",
 	Long: "Wegigo proxy recevie outside http requests and routed to MessageBroker",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Run Server")
 		wxmp.Run(wxmpCmdArg)
 	},
 }

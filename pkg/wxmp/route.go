@@ -13,10 +13,10 @@ import (
 
 const TOKEN = "laonabuzhai"
 
-//WxmpRequestMiddleware: convert http.Request to WxmpRequest
+//CheckSignatureMiddleware: validate the signature is correct or not
 func CheckSignatureMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
+		//r.ParseForm()
 		timestamp := r.FormValue("timestamp")
 		nonce := r.FormValue("nonce")
 		signature := r.FormValue("signature")
@@ -25,11 +25,15 @@ func CheckSignatureMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, "nonce", nonce)
+		r = r.WithContext(ctx)
+
 		next.ServeHTTP(w, r)
 	})
 }
 
-//WxmpRequestMiddleware: convert http.Request to WxmpRequest
+//MsgHeaderMiddleware: get wxmp message header
 func (srv *WxmpServer) MsgHeaderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get http body
@@ -41,14 +45,31 @@ func (srv *WxmpServer) MsgHeaderMiddleware(next http.Handler) http.Handler {
 		}
 
 		msgHeaders := make(map[string]interface{})
-		for uuid, app := range srv.appLoader.enabledAppMap {
-			msgHeaders[uuid] = strconv.FormatBool(app.Match(data))
+		for Uuid, app := range srv.enabledApps {
+			msgHeaders[Uuid] = strconv.FormatBool(app.Match(data))
 		}
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, "data", data)
 		ctx = context.WithValue(ctx, "msgHeaders", msgHeaders)
 		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+//Default Admin middleware: pass appInfos and enabledAppUuids
+func (srv *WxmpServer) AdminDefaultMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		enabledAppUuids := make([]string, 0)
+		for uuid, _ := range srv.enabledApps {
+			enabledAppUuids = append(enabledAppUuids, uuid)
+		}
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, "enabledUuids", enabledAppUuids)
+		r = r.WithContext(ctx)
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -68,10 +89,15 @@ func (srv *WxmpServer) setupRouter() {
 
 
 	//admin urls
-	srv.AddHttpHandlerFunc("get", "/admin/", srv.ViewAdminIndex)
-	srv.AddHttpHandlerFunc("get", "/admin/app/", srv.ViewAppAdminIndex)
+	srv.AddHttpHandler("get", "/admin/",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAdminIndex)))
+
+	srv.AddHttpHandler("get", "/admin/app/",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppAdminIndex)))
 
 	//app config route
-	srv.AddHttpHandlerFunc("get", "/admin/app/config/:uuid", srv.ViewAppConfig)
-	srv.AddHttpHandlerFunc("post", "/admin/app/toggle/:uuid", srv.ViewAppToggle)
+	srv.AddHttpHandler("post", "/admin/app/toggle/:Uuid",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppToggle)))
+
+	srv.AddHttpHandlerFunc("get", "/admin/app/config/:Uuid", srv.ViewAppConfig)
 }

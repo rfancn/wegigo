@@ -26,6 +26,10 @@ type WxmpCmdArgument struct {
 	AppConcurrency     int
 }
 
+type WxmpApp struct {
+
+}
+
 type WxmpServer struct {
 	server.SimpleServer
 	//command argument
@@ -34,8 +38,11 @@ type WxmpServer struct {
 	appManager 		*app.AppManager
 	rmqManager 		*rabbitmq.RabbitMQManager
 
-	// config store
-	appLoader      *AppLoader
+	//store all initialized App instance
+	apps        map[string]app.IApp
+	appInfos    map[string]*app.AppInfo
+	//store all enabled App intance
+	enabledApps map[string]app.IApp
 }
 
 func NewWxmpServer(serverName string, arg *WxmpCmdArgument) *WxmpServer {
@@ -61,7 +68,11 @@ func NewWxmpServer(serverName string, arg *WxmpCmdArgument) *WxmpServer {
 	srv.cmdArg = arg
 	srv.appManager = appManager
 	srv.rmqManager = rmqManager
-	srv.appLoader = NewAppLoader(srv)
+
+	//init other varaibles
+	srv.apps = make(map[string]app.IApp)
+	srv.appInfos = make(map[string]*app.AppInfo)
+	srv.enabledApps = make(map[string]app.IApp)
 
 	return srv
 }
@@ -81,7 +92,7 @@ func Run(cmdArg *WxmpCmdArgument) {
 	//server's amqp must be setup before discovering apps
 	srv.SetupAMQP()
 
-	srv.appLoader.Load()
+	srv.LoadAndRunApps()
 
 	srv.setupRouter()
 

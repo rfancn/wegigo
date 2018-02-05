@@ -36,12 +36,12 @@ func isEnabledMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		reqAppUuid := params.ByName("uuid")
+		reqAppId := params.ByName("Uuid")
 
-		log.Println(reqAppUuid)
+		log.Println(reqAppId)
 		log.Println(enabledApps)
 
-		_, enabled := enabledApps[reqAppUuid]
+		_, enabled := enabledApps[reqAppId]
 		if !enabled {
 			log.Println("App is not enabled, skip...")
 			return

@@ -37,8 +37,10 @@
             <div class="menu_section">
                 <h3>Applications</h3>
                 <ul class="nav side-menu">
-                    {% for appUuid, appName in enabledApps %}
-                        <li><a href="/wxmp/admin/app/config/{{ appUuid }}"><i class="fa fa-plug"></i>{{ appName }}</a></li>
+                    {% for uuid, info in appInfos %}
+                        {% if uuid in enabledUuids %}
+                        <li><a href="/wxmp/admin/app/config/{{ uuid }}"><i class="fa fa-plug"></i>{{ info.Name }}</a></li>
+                        {% endif %}
                     {% endfor %}
                 </ul>
             </div>

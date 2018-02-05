@@ -67,7 +67,7 @@ func Run(assetDir string, etcdAddress string, etcdPort int, rabbitmqAddress stri
 		log.Fatal("Error start proxy server:", err)
 	}
 
-	//log.Println("Enabled UUIDs:", srv.remoteConfig.GetAppUuids("enabled"))
+	//log.Println("Enabled Ids:", srv.remoteConfig.GetAppIds("enabled"))
 }
 
 func (srv *DemoServer) setupRouter() {
@@ -77,10 +77,10 @@ func (srv *DemoServer) setupRouter() {
 
 	//chain handler: isEnabledMiddleware->mainHandler
 	handlerChain := alice.New(isEnabledMiddleware).Then(http.HandlerFunc(mainHandler))
-	srv.AddRoute("get", "/app/:uuid", HandleFunc(handlerChain, srv.remoteConfig.enabledApps))
+	srv.AddRoute("get", "/app/:Uuid", HandleFunc(handlerChain, srv.remoteConfig.enabledApps))
 
 	//app config route
-	srv.AddRoute("get", "/config/app/:uuid", srv.ViewAppConfig)
+	srv.AddRoute("get", "/config/app/:Uuid", srv.ViewAppConfig)
 }
 
 func (srv *DemoServer) setupShutdownHandler() {

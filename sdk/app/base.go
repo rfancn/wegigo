@@ -23,10 +23,10 @@ func (m *AppManager) Close() {
 }
 
 /**
-func SetAppConfigField(cli *clientv3.Client, uuid string, field string, value interface{}) bool {
-	appConfig := GetAppConfig(cli, uuid)
+func SetAppConfigField(cli *clientv3.Client, Uuid string, field string, value interface{}) bool {
+	appConfig := GetAppConfig(cli, Uuid)
 	if  appConfig == nil {
-		log.Printf("Error SetAppConfigField(): no such app[%s]\n", uuid)
+		log.Printf("Error SetAppConfigField(): no such app[%s]\n", Uuid)
 		return false
 	}
 
@@ -35,7 +35,7 @@ func SetAppConfigField(cli *clientv3.Client, uuid string, field string, value in
 		return false
 	}
 
-	return etcd.Put(cli, filepath.Join(ETCD_APP_ROOT_URL, uuid), appConfig)
+	return etcd.Put(cli, filepath.Join(ETCD_APP_ROOT_URL, Uuid), appConfig)
 }
 
 // set app config filed with reflect method

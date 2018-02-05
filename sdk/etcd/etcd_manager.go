@@ -49,8 +49,8 @@ func (m *EtcdManager) GetRespWithPrefix(key string, opts ...clientv3.OpOption) *
 	return m.GetResp(key, clientv3.WithPrefix())
 }
 
-//GetBytes: get value bytes from ETCD
-func (m *EtcdManager) GetBytes(key string) []byte {
+//GetValue: get value bytes from ETCD
+func (m *EtcdManager) GetValue(key string) []byte {
 	resp := m.GetResp(key)
 	if len(resp.Kvs) < 1 {
 		return nil
@@ -60,22 +60,35 @@ func (m *EtcdManager) GetBytes(key string) []byte {
 	return resp.Kvs[0].Value
 }
 
-//GetBytesList: get value bytes list from ETCD
-func (m *EtcdManager) GetBytesList(key string) [][]byte {
+//GetValue: get value bytes slice from ETCD
+func (m *EtcdManager) GetValueList(key string) [][]byte {
 	resp := m.GetRespWithPrefix(key)
 
-	list := make([][]byte, 0)
+	vList := make([][]byte, 0)
 	for _, ev := range resp.Kvs {
-		list = append(list, ev.Value)
+		vList = append(vList, ev.Value)
+	}
+	return vList
+}
+
+//GetItems: get item list from ETCD
+func (m *EtcdManager) GetItemList(key string) []map[string]string {
+	resp := m.GetRespWithPrefix(key)
+
+	itemList := make([]map[string]string, 0)
+	for _, ev := range resp.Kvs {
+		item := make(map[string]string)
+		item[string(ev.Key)] = string(ev.Value)
+		itemList = append(itemList, item)
 	}
 
-	return list
+	return itemList
 }
 
 /**
   * Put operation
  */
-func (m *EtcdManager) PutBytes(key string, value []byte) bool {
+func (m *EtcdManager) PutValueBytes(key string, value []byte) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), ETCD_PUT_TIMEOUT)
 	_, err := m.cli.Put(ctx, key, string(value))
 	cancel()
@@ -95,7 +108,7 @@ func (m *EtcdManager) PutValue(key string, value interface{}) bool {
 		return false
 	}
 
-	return m.PutBytes(key, bv)
+	return m.PutValueBytes(key, bv)
 }
 
 /**

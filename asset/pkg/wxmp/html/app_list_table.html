@@ -11,16 +11,16 @@
     </tr>
     </thead>
     <tbody>
-    {% for appUuid, appConfigDict in appConfigMap %}
+    {% for uuid, info in appInfos %}
     <tr>
         <td>{{ forloop.Counter }}</td>
-        <td>{{ appConfigDict.Name }}</td>
-        <td>{{ appConfigDict.Version }}</td>
-        <td>{{ appConfigDict.Author }}</td>
-        <td>{{ appConfigDict.Desc }}</td>
+        <td>{{ info.Name }}</td>
+        <td>{{ info.Version }}</td>
+        <td>{{ info.Author }}</td>
+        <td>{{ info.Desc }}</td>
         <td>
             <label>
-                <input name="{{ appUuid}}" type="checkbox" class="js-switch" {% if appConfigDict.Status == "enabled" %}checked{% endif %}/>&nbsp;Enabled
+                <input name="{{ uuid }}" type="checkbox" class="js-switch" {% if uuid in enabledUuids %}checked{% endif %}/>&nbsp;Enabled
             </label>
         </td>
     </tr>

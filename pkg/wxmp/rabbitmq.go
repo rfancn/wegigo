@@ -12,9 +12,9 @@ func (srv *WxmpServer) SetupAMQP() {
 
 	/**
 	//for enabled apps, declare it's queue
-	for uuid, name := range srv.appManager.GetEnabledApps() {
+	for Uuid, name := range srv.appManager.GetEnabledApps() {
 		log.Println("Declare queue for enabled app:", name)
-		srv.rmqManager.DeclareQueue(uuid, false)
+		srv.rmqManager.DeclareQueue(Uuid, false)
 	}
 	**/
 }

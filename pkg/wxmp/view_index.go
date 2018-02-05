@@ -3,7 +3,6 @@ package wxmp
 import (
 	"net/http"
 	"log"
-	"fmt"
 	"time"
 )
 
@@ -11,14 +10,16 @@ import (
 func (srv *WxmpServer) ViewVerifyWxmpServer(w http.ResponseWriter, r *http.Request) {
 	log.Println("verify wxmp server")
 
-	r.ParseForm()
-
-	fmt.Fprintf(w, r.FormValue("echostr"))
+	//echo back "echostr" when succeed
+	w.Write([]byte(r.FormValue("echostr")))
 }
 
 func (srv *WxmpServer) ViewMain(w http.ResponseWriter, r *http.Request) {
-	replyQueueName := srv.rmqManager.DeclareTempQueue()
-	ch, msgs, err := srv.rmqManager.Consume(replyQueueName)
+	//1. declare reply queue
+	replyQueue := srv.rmqManager.DeclareTempQueue()
+
+	//2. consume
+	ch, msgs, err := srv.rmqManager.Consume(replyQueue)
 	defer ch.Close()
 	if err != nil {
 		log.Println("ViewMain(): Error consume wxmp reply queue:", err)
@@ -27,13 +28,18 @@ func (srv *WxmpServer) ViewMain(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//send message
+	nonce := r.Context().Value("nonce").(string)
 	data := r.Context().Value("data").([]byte)
 	msgHeaders := r.Context().Value("msgHeaders").(map[string]interface{})
+
+	log.Println(msgHeaders)
+
 	ok := srv.rmqManager.RPCPublishJsonWithHeaders(
 		srv.Name,
 		msgHeaders,
-		replyQueueName,
-		"123456789",
+		replyQueue,
+		//use nonce as msg's CorrelationId
+		nonce,
 		data)
 
 	if !ok {
@@ -42,23 +48,22 @@ func (srv *WxmpServer) ViewMain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
+	//monitor reply
 	select {
 	case m := <-msgs:
 		log.Println("ViewMain(): Receive reply:", string(m.Body))
-		if m.CorrelationId != "123456789" {
-			log.Println("Reply correlationId id umatched!")
+		if m.CorrelationId !=  nonce{
+			log.Println("Reply correlationId umatched!")
+			w.Write([]byte("success"))
 			return
 		}
 		w.Write(m.Body)
-		break
-	//timeout after waiting for 5 seconds, as publish may consume some time
-	//here use 4.8 seconds
-	case <-time.After(4 * time.Second + 800 * time.Millisecond):
-		log.Println("ViewMain(): Timeout waiting for reply")
+		//wxmp timeout waiting for reply is 5 seconds,
+		//but as queue declare/consume/publish may consume some time
+		//here use 100 milliseconds compensation
+	case <-time.After(4 * time.Second + 900 * time.Millisecond):
+		log.Printf("ViewMain(): Timeout waiting for reply: %v", time.Now())
 		w.Write([]byte("success"))
-		break
 	}
-
 
 }
