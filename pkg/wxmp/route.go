@@ -9,6 +9,7 @@ import (
 	"github.com/justinas/alice"
 	"io/ioutil"
 	"strconv"
+	"path"
 )
 
 const TOKEN = "laonabuzhai"
@@ -74,6 +75,36 @@ func (srv *WxmpServer) AdminDefaultMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+//Default Admin middleware: pass appInfos and enabledAppUuids
+func (srv *WxmpServer) AppDefaultMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//pass appPluginDir as AppRoot, which will used to load go-bindata for app
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, "AppRoot", srv.cmdArg.AppPluginDir)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+
+func (srv *WxmpServer) SetupAppRoutes() {
+	for uuid, app := range srv.apps {
+		appRoutes := app.GetRoutes()
+		for _, route := range appRoutes {
+			appPrefixUrl := path.Join("/", "app", uuid, route.Url)
+			srv.AddHttpHandler(
+				route.Method,
+				//add "/app/uuid/" as a prefix for the app route url
+				appPrefixUrl,
+				alice.New(
+					srv.AppDefaultMiddleware,
+				).Then(http.HandlerFunc(route.Handler)),
+			)
+		}
+	}
+}
+
 func (srv *WxmpServer) setupRouter() {
 	log.Println("Setup router")
 
@@ -87,7 +118,6 @@ func (srv *WxmpServer) setupRouter() {
 		CheckSignatureMiddleware,
 		srv.MsgHeaderMiddleware).Then(http.HandlerFunc(srv.ViewMain)))
 
-
 	//admin urls
 	srv.AddHttpHandler("get", "/admin/",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAdminIndex)))
@@ -95,9 +125,9 @@ func (srv *WxmpServer) setupRouter() {
 	srv.AddHttpHandler("get", "/admin/app/",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppAdminIndex)))
 
-	//app config route
+	//app enable/disable route
 	srv.AddHttpHandler("post", "/admin/app/toggle/:Uuid",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppToggle)))
 
-	srv.AddHttpHandlerFunc("get", "/admin/app/config/:Uuid", srv.ViewAppConfig)
+	srv.SetupAppRoutes()
 }

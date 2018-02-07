@@ -10,7 +10,7 @@ type BaseApp struct {
 	serverName string
 	rmqManager *rabbitmq.RabbitMQManager
 	appManager *AppManager
-	info       *AppInfo
+	Info       *AppInfo
 	//the queue to receive message from broker
 	receiveQueue string
 	currentApp IApp
@@ -22,7 +22,7 @@ type BaseApp struct {
 }
 
 func (a *BaseApp)  GetAppInfo() *AppInfo {
-	return a.info
+	return a.Info
 }
 
 func (a *BaseApp) Initialize(serverName string, etcdUrl string, amqpUrl string, info *AppInfo, currentApp IApp) error {
@@ -40,10 +40,10 @@ func (a *BaseApp) Initialize(serverName string, etcdUrl string, amqpUrl string, 
 	a.appManager = appManager
 	a.rmqManager = rmqManager
 	a.currentApp = currentApp
-	a.info = info
+	a.Info = info
 	a.stopChannel = make(chan int)
 
-	//sync info to etcd
+	//sync Info to etcd
 	if ! a.appManager.PutAppInfo(info) {
 		return errors.New("Error sync AppInfo to Etcd")
 	}
@@ -93,7 +93,7 @@ func (a *BaseApp) Consume(headers map[string]interface{}) {
 }
 
 func (a *BaseApp) Start(concurrency int) {
-	log.Println("Start app:", a.info.Name)
+	log.Println("Start app:", a.Info.Name)
 	a.status = "running"
 	//1. declare exchange
 	a.rmqManager.DeclareHeadersExchange(a.serverName)
@@ -107,7 +107,7 @@ func (a *BaseApp) Start(concurrency int) {
 		//each time the server will invoke app's match function before sending message,
 		//later we will set header with following key/values, and it will bind to exchange
 		//1. app's Uuid <-> app's match() must be true
-		a.info.Uuid: "true",
+		a.Info.Uuid: "true",
 	}
 
 	for j := 0; j < concurrency; j++ {
@@ -116,7 +116,7 @@ func (a *BaseApp) Start(concurrency int) {
 }
 
 func (a *BaseApp) Stop() {
-	log.Println("Stop app:", a.info.Name)
+	log.Println("Stop app:", a.Info.Name)
 	a.stopChannel <- 1
 	a.status = "stopped"
 }
@@ -126,5 +126,9 @@ func (a *BaseApp) IsRunning() bool {
 		return true
 	}
 	return false
+}
+
+func (a *BaseApp) GetRoutes() []*AppRoute{
+	return make([]*AppRoute, 0)
 }
 

@@ -34,7 +34,7 @@ func (m *AppManager) GetEnabledAppUuids() []string {
 
 //EnableApp: forcefully sync the [Uuid]=name map to /app/enabled
 //if someone change the app name, here forcefully sync without check if it exist or not
-//will still sync the latest info to /app/enabled
+//will still sync the latest Info to /app/enabled
 func (m *AppManager) EnableApp(Uuid string, name string) bool {
 	kvs := m.GetEnabledAppKVs()
 	kvs[Uuid] = name

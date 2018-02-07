@@ -15,7 +15,7 @@ func (m *AppManager) GetAppInfoBytes(Uuid string) []byte {
 func (m *AppManager) GetAppInfo(Uuid string) *AppInfo {
 	appInfoBytes := m.GetAppInfoBytes(Uuid)
 	if appInfoBytes == nil {
-		log.Println("AppManager GetAppInfo(): No such app info for:", Uuid)
+		log.Println("AppManager GetAppInfo(): No such app Info for:", Uuid)
 		return nil
 	}
 

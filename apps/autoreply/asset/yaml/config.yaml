@@ -20,33 +20,8 @@ javascript:
   - external: src="https://cdn.bootcss.com/parsley.js/2.8.0/parsley.min.js"
   - external: src="https://cdn.bootcss.com/vue/2.5.13/vue.runtime.common.js"
   - inline: |
-      //Wechat Media Platform config
-      var vueWechat = new Vue({
-          el: '#form-wechat',
-          data:{
-              'url': '',
-              'token': '',
-              'key':'',
-              'method': 'secure',
-          },
-      });
-
-      function leaveStep1(stepDirection) {
-        console.log("leave step2 step_wechat");
-        if(stepDirection === "forward"){
-           var isValidated = $("#form-wechat").parsley().validate();
-           if (!isValidated) {
-              alertify.alert("You need correct the errors marked as red to continue!");
-              return false;
-           }
-        }
-
-        return true;
-      }
-
-      function showStep1(stepDirection) {
-        console.log("show step2 step_wechat");
-        return true;
+      $(document).ready(function() {
+        console.log("auto reply js load");
       }
 
 

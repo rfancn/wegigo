@@ -49,6 +49,15 @@ func (a *autoReplyApp) Process(data []byte) []byte{
 	return wxmp.NewReply(wxmpRequest).ReplyText("echo:" + wxmpRequest.Content)
 }
 
+func (a *autoReplyApp) GetRoutes() []*app.AppRoute{
+	routeList := make([]*app.AppRoute, 0)
+	routeList = append(routeList,
+		&app.AppRoute{"get", "config", a.ViewConfigIndex},
+	)
+
+	return routeList
+}
+
 
 
 
