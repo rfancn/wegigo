@@ -38,7 +38,7 @@ func (m *AppManager) GetEnabledAppUuids() []string {
 func (m *AppManager) EnableApp(Uuid string, name string) bool {
 	kvs := m.GetEnabledAppKVs()
 	kvs[Uuid] = name
-	return m.etcdManager.PutValue(filepath.Join(ETCD_APP_ENABLED_URL), kvs)
+	return m.etcdManager.TxnPutValueAny(filepath.Join(ETCD_APP_ENABLED_URL), kvs)
 }
 
 func (m *AppManager) DisableApp(Uuid string) bool {
@@ -49,31 +49,23 @@ func (m *AppManager) DisableApp(Uuid string) bool {
 		delete(kvs, Uuid);
 	}
 
-	return m.etcdManager.PutValue(filepath.Join(ETCD_APP_ENABLED_URL), kvs)
+	return m.etcdManager.TxnPutValueAny(filepath.Join(ETCD_APP_ENABLED_URL), kvs)
 }
 
-/**
-func (m *AppManager) WatchEnabledApps(enabledApps map[string]string) (chan struct{}){
-	stopChan := make(chan struct{})
-
-	go func() {
-		watchChan := m.etcdManager.Watch(ETCD_APP_ENABLED_URL)
+func (m *AppManager) WatchEnabledApps(stopWatch chan struct{}, callback func()) {
+	watchRespChan := m.etcdManager.Watch(ETCD_APP_ENABLED_URL)
 
 	WATCH_LOOP:
-		for {
-			select {
-			case watchResp := <-watchChan:
-				for _, ev := range watchResp.Events {
-					log.Printf("%s %q : %q\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
-					enabledApps = m.GetEnabledAppUuids()
-				}
-			case <-stopChan:
-				log.Println("Quit WatchEnabledApps() routine")
-				break WATCH_LOOP
+	for {
+		select {
+		case watchResp := <-watchRespChan:
+			for _, ev := range watchResp.Events {
+				log.Printf("%s %q : %q\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
+				callback()
 			}
+		case <-stopWatch:
+			log.Println("Quit WatchEnabledApps() routine")
+			break WATCH_LOOP
 		}
-	}()
-
-	return stopChan
+	}
 }
-**/

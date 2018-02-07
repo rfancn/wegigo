@@ -88,7 +88,7 @@ func (m *EtcdManager) GetItemList(key string) []map[string]string {
 /**
   * Put operation
  */
-func (m *EtcdManager) PutValueBytes(key string, value []byte) bool {
+func (m *EtcdManager) Put(key string, value string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), ETCD_PUT_TIMEOUT)
 	_, err := m.cli.Put(ctx, key, string(value))
 	cancel()
@@ -100,8 +100,12 @@ func (m *EtcdManager) PutValueBytes(key string, value []byte) bool {
 	return true
 }
 
+func (m *EtcdManager) PutValueBytes(key string, value []byte) bool {
+	return m.Put(key, string(value))
+}
+
 //Put key/value to ETCD
-func (m *EtcdManager) PutValue(key string, value interface{}) bool {
+func (m *EtcdManager) PutValueAny(key string, value interface{}) bool {
 	bv, err := json.Marshal(value)
 	if err != nil {
 		log.Println("EtcdManager Put(): Error marshal value")
@@ -141,5 +145,44 @@ func (m *EtcdManager) Delete(key string, opts ...clientv3.OpOption) bool {
 
 func (m *EtcdManager) DeleteWithPrefix(key string) bool {
 	return m.Delete(key, clientv3.WithPrefix())
+}
+
+/**
+  transaction put
+ */
+func (m *EtcdManager) TxnPut(key string, value string) bool {
+	//Read stored key value
+	v := m.GetResp(key).Kvs[0]
+
+	kvc := clientv3.NewKV(m.cli)
+	ctx, cancel := context.WithTimeout(context.Background(), ETCD_PUT_TIMEOUT)
+	//new transaction
+	resp, err := kvc.Txn(ctx).
+		//if modification revision equals to what we get
+		If(clientv3.Compare(clientv3.ModRevision(key), "=", v.ModRevision)).
+		//then put value
+		Then(clientv3.OpPut(key, value)).
+		Commit()
+	cancel()
+	if err != nil {
+		log.Println("EtcdManager TxnPut(): Error commit transaction:", err)
+		return false
+	}
+
+	return resp.Succeeded
+}
+
+func (m *EtcdManager) TxnPutValueBytes(key string, value []byte) bool {
+	return m.TxnPut(key, string(value))
+}
+
+func (m *EtcdManager) TxnPutValueAny(key string, value interface{}) bool {
+	bv, err := json.Marshal(value)
+	if err != nil {
+		log.Println("EtcdManager TxnPutValueAny(): Error marshal value")
+		return false
+	}
+
+	return m.TxnPutValueBytes(key, bv)
 }
 

@@ -43,6 +43,9 @@ type WxmpServer struct {
 	appInfos    map[string]*app.AppInfo
 	//store all enabled App intance
 	enabledApps map[string]app.IApp
+
+	//stop watch channel, all watch routine need check this for quit or not
+	stopWatch   chan struct{}
 }
 
 func NewWxmpServer(serverName string, arg *WxmpCmdArgument) *WxmpServer {
@@ -74,6 +77,8 @@ func NewWxmpServer(serverName string, arg *WxmpCmdArgument) *WxmpServer {
 	srv.appInfos = make(map[string]*app.AppInfo)
 	srv.enabledApps = make(map[string]app.IApp)
 
+	srv.stopWatch = make(chan struct{})
+
 	return srv
 }
 
@@ -94,6 +99,8 @@ func Run(cmdArg *WxmpCmdArgument) {
 
 	srv.LoadAndRunApps()
 
+	go srv.WatchEnabledApps()
+
 	srv.setupRouter()
 
 	err := srv.Run(cmdArg.ServerUrl)
@@ -113,6 +120,7 @@ func (srv *WxmpServer) setupShutdownHandler() {
 }
 
 func (srv *WxmpServer) Close() {
+	close(srv.stopWatch)
 	srv.rmqManager.Close()
 	srv.appManager.Close()
 }

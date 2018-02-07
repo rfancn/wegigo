@@ -78,8 +78,6 @@ func (srv *WxmpServer)  DiscoverApps(appPluginDir string) map[string]app.IApp {
 	return apps
 }
 
-
-
 func (srv *WxmpServer) LoadAndRunApps() {
 	//load apps: discover/init apps
 	srv.apps = srv.DiscoverApps(srv.cmdArg.AppPluginDir)
@@ -98,5 +96,53 @@ func (srv *WxmpServer) LoadAndRunApps() {
 	}
 }
 
+func inSlice(item string, list []string) bool  {
+	for _, i := range list {
+		if item == i {
+			return true
+		}
+	}
+
+	return false
+}
+
+
+func (srv *WxmpServer) UpdateEnabledApps() {
+	log.Println("Previous Enabled Apps:", srv.enabledApps)
+
+	//get enabled apps from etcd
+	newEnabledUuids := srv.appManager.GetEnabledAppUuids()
+
+	//check need to be removed/stopped one
+	for oldUuid, app := range srv.enabledApps {
+		//if old uuid not in current enabled Uuid, then it need stop
+		if !inSlice(oldUuid, newEnabledUuids) {
+			log.Println("stop uuid:", oldUuid)
+			delete(srv.enabledApps, oldUuid)
+			app.Stop()
+		}
+	}
+
+	//check new added/run one
+	for _, newUuid := range newEnabledUuids {
+		theApp, ok := srv.enabledApps[newUuid]
+		//in case enabled uuid is not in current enabledApps
+		if !ok {
+
+			theApp = srv.apps[newUuid]
+			srv.enabledApps[newUuid] = theApp
+		}
+
+		//start the new
+		if ! theApp.IsRunning() {
+			log.Println("start uuid:", newUuid)
+			theApp.Start(srv.cmdArg.AppConcurrency)
+		}
+	}
+}
+
+func (srv *WxmpServer) WatchEnabledApps() {
+	srv.appManager.WatchEnabledApps(srv.stopWatch, srv.UpdateEnabledApps)
+}
 
 

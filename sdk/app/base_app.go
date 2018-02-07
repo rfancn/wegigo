@@ -15,7 +15,10 @@ type BaseApp struct {
 	receiveQueue string
 	currentApp IApp
 	//stop channel to indicate app stop
-	stopChannel chan struct{}
+	stopChannel chan int
+
+	//running status
+	status string
 }
 
 func (a *BaseApp)  GetAppInfo() *AppInfo {
@@ -38,7 +41,7 @@ func (a *BaseApp) Initialize(serverName string, etcdUrl string, amqpUrl string, 
 	a.rmqManager = rmqManager
 	a.currentApp = currentApp
 	a.info = info
-	a.stopChannel = make(chan struct{})
+	a.stopChannel = make(chan int)
 
 	//sync info to etcd
 	if ! a.appManager.PutAppInfo(info) {
@@ -91,9 +94,10 @@ func (a *BaseApp) Consume(headers map[string]interface{}) {
 
 func (a *BaseApp) Start(concurrency int) {
 	log.Println("Start app:", a.info.Name)
-
+	a.status = "running"
 	//1. declare exchange
 	a.rmqManager.DeclareHeadersExchange(a.serverName)
+
 
 	//2. build match message headers
 	//init rabbitmq bind headers which will be used later
@@ -113,7 +117,14 @@ func (a *BaseApp) Start(concurrency int) {
 
 func (a *BaseApp) Stop() {
 	log.Println("Stop app:", a.info.Name)
-	close(a.stopChannel)
-	a.appManager.Close()
-	a.rmqManager.Close()
+	a.stopChannel <- 1
+	a.status = "stopped"
 }
+
+func (a *BaseApp) IsRunning() bool {
+	if a.status == "running" {
+		return true
+	}
+	return false
+}
+

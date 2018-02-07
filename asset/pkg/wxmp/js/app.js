@@ -1,7 +1,8 @@
-// Switchery
-
 // enable or disable application
 function toggleApp(uuid, enabled){
+    // Switchery
+    var toggleAppResult = false;
+
     $.ajax({
         url: "/wxmp/admin/app/toggle/" + uuid + "/" ,
         type: 'POST',
@@ -12,15 +13,20 @@ function toggleApp(uuid, enabled){
             console.log(data);
             if (data == "success") {
                 console.log("in success");
+                toggleAppResult = true;
                 location.reload();
             }else{
+                toggleAppResult = false;
                 alertify.alert("Error toggle app!");
             }
         },
         error: function(xhr, status){
+            toggleAppResult = false;
             alertify.alert("Error toggle app");
         },
     });
+
+    return toggleAppResult
 }
 
 $(document).ready(function() {
@@ -35,8 +41,16 @@ $(document).ready(function() {
         $(".js-switch").on("click", function(){
             var uuid =  $(this).prop('name');
             var enabled = $(this).prop('checked');
-            toggleApp(uuid, enabled);
+            return toggleApp(uuid, enabled);
         });
     }
+
+    //setup ajax loader
+    $(document).ajaxStart(function(){
+        $.LoadingOverlay("show");
+    });
+    $(document).ajaxStop(function(){
+        $.LoadingOverlay("hide");
+    });
 });
 // /Switchery

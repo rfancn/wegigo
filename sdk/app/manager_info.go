@@ -50,5 +50,5 @@ func (m *AppManager) GetAppInfoMap() map[string]*AppInfo{
 }
 
 func (m *AppManager) PutAppInfo(appInfo *AppInfo) bool {
-	return m.etcdManager.PutValue(filepath.Join(ETCD_APP_INFO_URL, appInfo.Uuid), appInfo)
+	return m.etcdManager.PutValueAny(filepath.Join(ETCD_APP_INFO_URL, appInfo.Uuid), appInfo)
 }

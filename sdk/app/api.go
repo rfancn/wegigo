@@ -28,6 +28,7 @@ type IApp interface {
 	Match(data []byte) 		bool
 	Start(concurrency int)
 	Stop()
+	IsRunning()				bool
 	Process(data []byte) 	[]byte
 }
 
