@@ -23,7 +23,7 @@ func (srv *DeployServer) ViewIndex(w http.ResponseWriter, r *http.Request, ps ht
 	context["wizard"] = srv.getInstallWizard()
 	context["modal"] = srv.getServerEditModal()
 
-	srv.RespRender(w, "index.html", context)
+	srv.RespRenderFile(w, "index.html", context)
 }
 
 func (srv *DeployServer) getInstallWizard() map[string]string {

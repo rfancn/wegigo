@@ -5,6 +5,7 @@ import (
 	"github.com/rfancn/wegigo/sdk/app"
 	"github.com/rfancn/wegigo/sdk/wxmp"
 	"time"
+	"path"
 )
 
 var App autoReplyApp
@@ -14,6 +15,7 @@ var APP_INFO = &app.AppInfo{
 	Version: "0.0.1",
 	Author: "Ryan Fan",
 	Desc: "auto reply wechat messages based on rules",
+	Configurable: true,
 }
 
 type autoReplyApp struct {
@@ -49,13 +51,16 @@ func (a *autoReplyApp) Process(data []byte) []byte{
 	return wxmp.NewReply(wxmpRequest).ReplyText("echo:" + wxmpRequest.Content)
 }
 
-func (a *autoReplyApp) GetRoutes() []*app.AppRoute{
-	routeList := make([]*app.AppRoute, 0)
-	routeList = append(routeList,
-		&app.AppRoute{"get", "config", a.ViewConfigIndex},
-	)
+func (a *autoReplyApp) GetConfigYaml() []byte{
+	yamlPath := path.Join(a.Env.RootDir, "asset/yaml/config.yaml")
 
-	return routeList
+	data, err := Asset(yamlPath)
+	if err != nil {
+		log.Println("AutoReplyApp: Error retrieve data:", err)
+		return nil
+	}
+
+	return data
 }
 
 

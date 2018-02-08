@@ -30,7 +30,7 @@ func newTemplateSet(assetManager IAssetManager) (tSet *pongo2.TemplateSet) {
 }
 
 //Response and render templates
-func (srv *SimpleServer) Render(templatePath string, context map[string]interface{}) (string, error) {
+func (srv *SimpleServer) RenderFile(templatePath string, context map[string]interface{}) (string, error) {
 	if context == nil {
 		context = make(map[string]interface{})
 	}
@@ -49,23 +49,60 @@ func (srv *SimpleServer) Render(templatePath string, context map[string]interfac
 	return output, nil
 }
 
+//Response and render templates
+func (srv *SimpleServer) RenderBytes(data []byte, context map[string]interface{}) (string, error) {
+	if context == nil {
+		context = make(map[string]interface{})
+	}
+
+	//add root url for template reference
+	context["PKG_ROOT"] = srv.assetManager.GetRootUrl(ASSET_NAMESPACE_PKG)
+	context["VENDOR_ROOT"] = srv.assetManager.GetRootUrl(ASSET_NAMESPACE_VENDOR)
+
+	t := pongo2.Must(srv.templateSet.FromBytes(data))
+	output, err := t.Execute(context)
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	return output, nil
+}
+
 //Response and render generic
-func (srv *SimpleServer) RespRender(w http.ResponseWriter, templateFile string, context map[string]interface{}) bool {
+func (srv *SimpleServer) RespRenderFile(w http.ResponseWriter, templateFile string, context map[string]interface{}) bool {
 	templatePath := srv.assetManager.GetAssetPath(templateFile)
 	if templatePath == "" {
 		log.Println("Error locate template:", templateFile)
 		return false
 	}
 
-	output, err := srv.Render(templatePath, context)
+	output, err := srv.RenderFile(templatePath, context)
 	if err != nil {
-		fmt.Printf("Error render template[%s]: %s\n", templatePath, err)
+		log.Println("RespRenderFile(): Error render template[%s]: %s\n", templatePath, err)
 		return false
 	}
 
 	_, err = fmt.Fprint(w, output)
 	if err != nil {
-		fmt.Printf("Error echo server response: ", err)
+		log.Println("RespRenderFile(): Error write server response: ", err)
+		return false
+	}
+
+	return true
+}
+
+//Response and render generic
+func (srv *SimpleServer) RespRenderBytes(w http.ResponseWriter, data []byte, context map[string]interface{}) bool {
+	output, err := srv.RenderBytes(data, context)
+	if err != nil {
+		log.Println("RespRenderBytes(): Error render template:", err)
+		return false
+	}
+
+	_, err = fmt.Fprint(w, output)
+	if err != nil {
+		log.Println("Error write server response: ", err)
 		return false
 	}
 
@@ -75,7 +112,7 @@ func (srv *SimpleServer) RespRender(w http.ResponseWriter, templateFile string, 
 func (srv *SimpleServer) RespText(w http.ResponseWriter, response string) bool {
 	_, err := fmt.Fprint(w, response)
 	if err != nil {
-		fmt.Printf("Error return text response: ", err)
+		log.Println("Error return text response: ", err)
 		return false
 	}
 

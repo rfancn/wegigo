@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"log"
 	"github.com/julienschmidt/httprouter"
+	"bytes"
+	"time"
+	"encoding/json"
 )
 
 func (srv *WxmpServer) ViewAdminIndex(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +16,7 @@ func (srv *WxmpServer) ViewAdminIndex(w http.ResponseWriter, r *http.Request) {
 	context["appInfos"] = srv.appInfos
 	context["enabledUuids"] = r.Context().Value("enabledUuids").([]string)
 
-	srv.RespRender(w, "index.html", context)
+	srv.RespRenderFile(w, "index.html", context)
 }
 
 func (srv *WxmpServer) ViewAppAdminIndex(w http.ResponseWriter, r *http.Request) {
@@ -23,13 +26,7 @@ func (srv *WxmpServer) ViewAppAdminIndex(w http.ResponseWriter, r *http.Request)
 	context["appInfos"] = srv.appInfos
 	context["enabledUuids"] = r.Context().Value("enabledUuids").([]string)
 
-	srv.RespRender(w, "app.html", context)
-}
-
-
-func (srv *WxmpServer) ViewAppConfig(w http.ResponseWriter, r *http.Request) {
-	params := r.Context().Value("params").(httprouter.Params)
-	log.Println("config app:", params.ByName("Uuid"))
+	srv.RespRenderFile(w, "app_list.html", context)
 }
 
 func (srv *WxmpServer) ViewAppToggle(w http.ResponseWriter, r *http.Request) {
@@ -59,3 +56,90 @@ func (srv *WxmpServer) ViewAppToggle(w http.ResponseWriter, r *http.Request) {
 		srv.RespText(w, "success")
 	}
 }
+
+//Read config stuff from yaml
+func (srv *WxmpServer) GetConfigItems(yamlContent []byte) (html, inlineJs, externalJs string) {
+	if ok := srv.y2h.ReadBytes(yamlContent); !ok{
+		log.Println("Error parse yaml content")
+		return "", "", ""
+	}
+
+	//get Javascript output
+	var inlineJsBuffer bytes.Buffer
+	var externalJsBuffer bytes.Buffer
+	for jsType, jsContent := range srv.y2h.GetJavascript() {
+		switch jsType {
+		case "inline":
+			inlineJsBuffer.WriteString(jsContent)
+		case "external":
+			externalJsBuffer.WriteString(jsContent)
+		}
+	}
+
+	return srv.y2h.GetHtml(), inlineJsBuffer.String(), externalJsBuffer.String()
+}
+
+func (srv *WxmpServer) ViewAppConfigIndex(w http.ResponseWriter, r *http.Request) {
+	appUuid := r.Context().Value("appUuid").(string)
+	log.Println("App Config:", appUuid)
+	theApp, exist := srv.enabledApps[appUuid]
+	if !exist {
+		log.Printf("Error config app:%s as it doesn't exist or enabled\n", appUuid)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	switch r.Method {
+	case "GET":
+		log.Println("display app config page for:", appUuid)
+
+		yamlContent := theApp.GetConfigYaml()
+		if yamlContent == nil {
+			srv.RespRenderFile(w, "app_config.html", nil)
+			return
+		}
+
+		//render template
+		context := make(map[string]interface{})
+		appInfo :=  theApp.GetAppInfo()
+		appConfig, _ := json.Marshal(appInfo)
+		context["appConfig"] = string(appConfig)
+		context["appInfo"] =appInfo
+		context["html"], context["inlineJs"], context["externalJs"] = srv.GetConfigItems(yamlContent)
+
+		srv.RespRenderFile(w, "app_config.html", context)
+	case "POST":
+		log.Println("save app config for:", appUuid)
+	}
+}
+
+func (srv *WxmpServer) ViewFetchAppConfig(w http.ResponseWriter, r *http.Request) {
+	appUuid := r.Context().Value("appUuid").(string)
+	log.Println("Fetch app config:", appUuid)
+	_, exist := srv.enabledApps[appUuid]
+	if !exist {
+		log.Printf("Error config app:%s as it doesn't exist or enabled\n", appUuid)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	time.Sleep(2 * time.Second)
+
+	srv.RespJson(w, srv.appInfos[appUuid])
+}
+
+func (srv *WxmpServer) ViewSaveAppConfig(w http.ResponseWriter, r *http.Request) {
+	appUuid := r.Context().Value("appUuid").(string)
+	log.Println("App Config:", appUuid)
+	_, exist := srv.enabledApps[appUuid]
+	if !exist {
+		log.Printf("Error config app:%s as it doesn't exist or enabled\n", appUuid)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	time.Sleep(2 * time.Second)
+
+	srv.RespJson(w, "456")
+}
+

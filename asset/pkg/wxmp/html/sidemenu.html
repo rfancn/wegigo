@@ -38,7 +38,7 @@
                 <h3>Applications</h3>
                 <ul class="nav side-menu">
                     {% for uuid, info in appInfos %}
-                        {% if uuid in enabledUuids %}
+                        {% if uuid in enabledUuids and info.Configurable %}
                         <li><a href="/wxmp/admin/app/config/{{ uuid }}"><i class="fa fa-plug"></i>{{ info.Name }}</a></li>
                         {% endif %}
                     {% endfor %}

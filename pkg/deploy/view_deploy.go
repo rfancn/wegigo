@@ -29,7 +29,7 @@ func (srv *DeployServer) ViewDeploy(w http.ResponseWriter, r *http.Request, ps h
 	}
 	**/
 
-	srv.RespRender(w, "deploy.html", nil)
+	srv.RespRenderFile(w, "deploy.html", nil)
 
 	log.Println("Exit ViewDeploy, server status is:", srv.status)
 }

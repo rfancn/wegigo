@@ -30,6 +30,9 @@ type IApp interface {
 	//NewAppEnv() *AppEnv
 
 	GetAppInfo() *AppInfo
+
+	GetConfigYaml() []byte
+
 	//check if passed data is matched or not,
 	//if matched, then message will send to app's queue
 	//else, no message will be recevied
@@ -61,6 +64,7 @@ type AppInfo struct {
 	Version string
 	Author 	string
 	Desc  	string
+	Configurable bool
 }
 
 

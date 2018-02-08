@@ -9,17 +9,17 @@
 <script src="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.js"></script>
 <script src="{{ VENDOR_ROOT }}/switchery/switchery.min.js"></script>
 <script src="{{ VENDOR_ROOT }}/jquery-loading-overlay/loadingoverlay.min.js"></script>
-<script src="{{ PKG_ROOT }}/js/app.js"></script>
+<script src="{{ PKG_ROOT }}/js/app_list.js"></script>
 {% endblock %}
 
 {% block content %}
-	{% include "page_title.html" with title="Application" titleDesc="all application list" %}
+	{% include "page_title.html" with title="Applications" titleDesc="all application list" %}
 
     <div class="clearfix"></div>
 
     <div class="row">
         <div class="col-md-12">
-            {% include "xpanel.html" with panelTitle="Application" panelDesc="application list desc" panelContent="app_list_table" %}
+            {% include "xpanel_include_file.html" with panelTitle="Application" panelDesc="application list desc" file="app_list_table" %}
         </div>
     </div>
 {% endblock %}

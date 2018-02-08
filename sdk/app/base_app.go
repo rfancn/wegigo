@@ -138,3 +138,7 @@ func (a *BaseApp) GetRoutes() []*AppRoute{
 	return make([]*AppRoute, 0)
 }
 
+func (a *BaseApp) GetConfigYaml() []byte{
+	return nil
+}
+

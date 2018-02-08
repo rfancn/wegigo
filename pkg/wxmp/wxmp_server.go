@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"github.com/rfancn/goy2h"
 	"github.com/rfancn/wegigo/sdk/server"
 	"github.com/rfancn/wegigo/sdk/app"
 	"github.com/rfancn/wegigo/sdk/rabbitmq"
@@ -48,6 +49,9 @@ type WxmpServer struct {
 
 	//stop watch channel, all watch routine need check this for quit or not
 	stopWatch   chan struct{}
+
+	//yaml to html translator, which will be used in app config view
+	y2h *goy2h.Y2H
 }
 
 func NewWxmpServer(serverName string, arg *WxmpCmdArgument) *WxmpServer {
@@ -73,6 +77,7 @@ func NewWxmpServer(serverName string, arg *WxmpCmdArgument) *WxmpServer {
 	srv.cmdArg = arg
 	srv.appManager = appManager
 	srv.rmqManager = rmqManager
+	srv.y2h = goy2h.New()
 
 	//init other varaibles
 	srv.apps = make(map[string]app.IApp)
@@ -105,7 +110,7 @@ func Run(cmdArg *WxmpCmdArgument) {
 
 	go srv.WatchEnabledApps()
 
-	srv.setupRouter()
+	srv.SetupRouter()
 
 	err := srv.Run(cmdArg.ServerUrl)
 	if err != nil {

@@ -4,10 +4,7 @@
         <div class="clearfix"></div>
     </div>
     <div class="x_content">
-        {% if panelDesc %}
-            <p>{{ panelDesc}}</p>
-        {% endif %}
-
-        {{ panelContent|safe }}
+        <p>{{ panelDesc}}</p>
+        {% include file|add:".html" %}
     </div>
 </div>

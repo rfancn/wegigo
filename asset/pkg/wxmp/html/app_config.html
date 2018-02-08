@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block custom_css %}
+<link href="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.css" rel="stylesheet">
+{% endblock %}
+
+{% block custom_js %}
+<script src="{{ VENDOR_ROOT }}/vue/vue.min.js"></script>
+<script src="{{ VENDOR_ROOT }}/parsley.js/parsley.min.js"></script>
+<script src="{{ VENDOR_ROOT }}/parsley.js/zh_cn.js"></script>
+<script src="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.js"></script>
+<script src="{{ VENDOR_ROOT }}/jquery-loading-overlay/loadingoverlay.min.js"></script>
+<script src="{{ PKG_ROOT }}/js/app_config.js"></script>
+{{ externalJs|safe }}
+<script>
+
+</script>
+<script>
+//config fetched from server side
+var CONFIG = $.parseJSON('{{ appConfig|safe }}');
+{{ inlineJs|safe }}
+</script>
+{% endblock %}
+
+{% block content %}
+	{% include "page_title.html" with title="Application Configuration" titleDesc="application configuration" %}
+
+    <div class="clearfix"></div>
+
+    <div class="row">
+        <div class="col-md-12">
+            {% include "xpanel.html" with panelTitle=appInfo.Name panelContent=html %}
+        </div>
+    </div>
+{% endblock %}

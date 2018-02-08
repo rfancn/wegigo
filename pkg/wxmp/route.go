@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/rfancn/wegigo/sdk/wxmp"
 	"github.com/justinas/alice"
+	"github.com/julienschmidt/httprouter"
 	"io/ioutil"
 	"strconv"
 	"path"
@@ -63,12 +64,27 @@ func (srv *WxmpServer) MsgHeaderMiddleware(next http.Handler) http.Handler {
 //Default Admin middleware: pass appInfos and enabledAppUuids
 func (srv *WxmpServer) AdminDefaultMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//make sure we don't respond to disabled app admin requests
+		params := r.Context().Value("params").(httprouter.Params)
+		appUuid :=  params.ByName("Uuid")
+		if appUuid != "" {
+			_, exist := srv.enabledApps[appUuid]
+			if !exist {
+				http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+				return
+			}
+		}
+
+		//get enabled app uuids
 		enabledAppUuids := make([]string, 0)
 		for uuid, _ := range srv.enabledApps {
 			enabledAppUuids = append(enabledAppUuids, uuid)
 		}
 
 		ctx := r.Context()
+		//store current requested app uuid
+		ctx = context.WithValue(ctx, "appUuid", appUuid)
+		//store all enabled uuids
 		ctx = context.WithValue(ctx, "enabledUuids", enabledAppUuids)
 		r = r.WithContext(ctx)
 
@@ -76,7 +92,7 @@ func (srv *WxmpServer) AdminDefaultMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-//Default Admin middleware: pass appInfos and enabledAppUuids
+//Default App middleware: pass appInfos and enabledAppUuids
 func (srv *WxmpServer) AppDefaultMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		enabledUrl := false
@@ -116,7 +132,32 @@ func (srv *WxmpServer) SetupAppRoutes() {
 	}
 }
 
-func (srv *WxmpServer) setupRouter() {
+func (srv *WxmpServer) SetupAdminRoutes() {
+	//admin urls
+	srv.AddHttpHandler("get", "/admin/",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAdminIndex)))
+
+	srv.AddHttpHandler("get", "/admin/app/",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppAdminIndex)))
+
+	//app enable/disable route
+	srv.AddHttpHandler("post", "/admin/app/toggle/:Uuid",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppToggle)))
+
+	//add app's config url
+	//app config index url
+	srv.AddHttpHandler("get", "/admin/app/config/:Uuid",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppConfigIndex)))
+
+	//fetch app config from db
+	srv.AddHttpHandler("get", "/app/config/:Uuid",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewFetchAppConfig)))
+	//save app config to db
+	srv.AddHttpHandler("post", "/app/config/:Uuid",	alice.New(
+		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewSaveAppConfig)))
+}
+
+func (srv *WxmpServer) SetupRouter() {
 	log.Println("Setup router")
 
 	//handle wxmp server verification request
@@ -129,16 +170,7 @@ func (srv *WxmpServer) setupRouter() {
 		CheckSignatureMiddleware,
 		srv.MsgHeaderMiddleware).Then(http.HandlerFunc(srv.ViewMain)))
 
-	//admin urls
-	srv.AddHttpHandler("get", "/admin/",	alice.New(
-		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAdminIndex)))
-
-	srv.AddHttpHandler("get", "/admin/app/",	alice.New(
-		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppAdminIndex)))
-
-	//app enable/disable route
-	srv.AddHttpHandler("post", "/admin/app/toggle/:Uuid",	alice.New(
-		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppToggle)))
+	srv.SetupAdminRoutes()
 
 	srv.SetupAppRoutes()
 }

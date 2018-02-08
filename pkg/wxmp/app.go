@@ -46,7 +46,7 @@ func (srv *WxmpServer)  DiscoverApps(appPluginDir string) map[string]app.IApp {
 	}
 
 	for name, path := range appPlugins {
-		log.Printf("Found App Plugin:%s under:%s", name, path)
+		log.Println("Found App Plugin:", path)
 
 		plug, err := plugin.Open(path)
 		if err != nil {

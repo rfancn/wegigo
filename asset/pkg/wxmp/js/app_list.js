@@ -30,6 +30,14 @@ function toggleApp(uuid, enabled){
 }
 
 $(document).ready(function() {
+    //setup ajax loader
+    $(document).ajaxStart(function(){
+        $.LoadingOverlay("show");
+    });
+    $(document).ajaxStop(function(){
+        $.LoadingOverlay("hide");
+    });
+
     if ($(".js-switch")[0]) {
         var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
         elems.forEach(function (html) {
@@ -45,12 +53,6 @@ $(document).ready(function() {
         });
     }
 
-    //setup ajax loader
-    $(document).ajaxStart(function(){
-        $.LoadingOverlay("show");
-    });
-    $(document).ajaxStop(function(){
-        $.LoadingOverlay("hide");
-    });
+
 });
 // /Switchery

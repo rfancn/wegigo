@@ -15,6 +15,7 @@ var APP_INFO = &app.AppInfo{
 	Version: "0.0.1",
 	Author: "Ryan Fan",
 	Desc: "Automatically publish url to Hugo site based on received Wechat messages",
+	Configurable: true,
 }
 
 type publishToHugo struct {
