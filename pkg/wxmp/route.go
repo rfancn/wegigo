@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"path"
+	"strings"
 )
 
 const TOKEN = "laonabuzhai"
@@ -78,10 +79,20 @@ func (srv *WxmpServer) AdminDefaultMiddleware(next http.Handler) http.Handler {
 //Default Admin middleware: pass appInfos and enabledAppUuids
 func (srv *WxmpServer) AppDefaultMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//pass appPluginDir as AppRoot, which will used to load go-bindata for app
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, "AppRoot", srv.cmdArg.AppPluginDir)
-		r = r.WithContext(ctx)
+		enabledUrl := false
+		for uuid, _ := range srv.enabledApps {
+			if strings.Contains(r.URL.Path, uuid) {
+				enabledUrl = true
+				break
+			}
+		}
+
+		//on enabled url can continue executed by app plugin,
+		//otherwise, just returns
+		if ! enabledUrl {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
 
 		next.ServeHTTP(w, r)
 	})

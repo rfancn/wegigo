@@ -20,7 +20,15 @@ Disable: 1. update etcd app configuration 2. destroy proxy instance or remove th
 Uninstall: 1. clean etcd app setting 2. remove from app server docker image
  */
 type IApp interface {
-	Init(serverName string, etcdUrl string, amqpUrl string) error
+	//serverName: the app plugin running on what kind of server
+	//rootDir: app plugin .so file dir
+	//etcdUrl: Etcd connection url
+	//amqpUrl: RabbitMQ connection url
+	//Init(env *AppEnv) error
+	Init(serverName string, rootDir string, etcdUrl string, amqpUrl string) error
+
+	//NewAppEnv() *AppEnv
+
 	GetAppInfo() *AppInfo
 	//check if passed data is matched or not,
 	//if matched, then message will send to app's queue
@@ -36,6 +44,14 @@ type IApp interface {
 	Process(data []byte) 	[]byte
 	//get own customized urls
 	GetRoutes() []*AppRoute
+}
+
+//app running Env related
+type AppEnv struct {
+	ServerName string
+	RootDir    string
+	EtcdUrl string
+	AmqpUrl string
 }
 
 //App basic Info

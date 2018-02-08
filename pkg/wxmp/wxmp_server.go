@@ -26,8 +26,10 @@ type WxmpCmdArgument struct {
 	AppConcurrency     int
 }
 
-type WxmpApp struct {
-
+type WxmpServerEnv struct {
+	serverName string
+	etcdUrl string
+	amqpUrl string
 }
 
 type WxmpServer struct {
@@ -90,6 +92,8 @@ func Run(cmdArg *WxmpCmdArgument) {
 		log.Fatal("Error create wxmp server")
 	}
 	defer srv.Close()
+
+	//srv.InitEnv()
 
 	//setup graceful shutdown handler
 	srv.setupShutdownHandler()

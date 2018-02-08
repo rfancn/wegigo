@@ -9,8 +9,8 @@ import (
 func (a *autoReplyApp) ViewConfigIndex(w http.ResponseWriter, r *http.Request) {
 	log.Println("autoreply index")
 
-	appRoot := r.Context().Value("AppRoot").(string)
-	resPath := path.Join(appRoot, "autoreply/asset/html/test.html")
+
+	resPath := path.Join(a.Env.RootDir, "asset/html/test.html")
 
 	data, err := Asset(resPath)
 	if err != nil {

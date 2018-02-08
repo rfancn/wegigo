@@ -21,8 +21,8 @@ type publishToHugo struct {
 	app.BaseApp
 }
 
-func (a *publishToHugo) Init(serverName string, etcdUrl string, amqpUrl string) error {
-	return a.BaseApp.Initialize(serverName, etcdUrl, amqpUrl, APP_INFO, a)
+func (a *publishToHugo) Init(serverName string, rootDir string, etcdUrl string, amqpUrl string) error {
+	return a.BaseApp.Initialize(serverName, rootDir, etcdUrl, amqpUrl, APP_INFO, a)
 }
 
 func (a *publishToHugo) Match(data []byte) bool{

@@ -46,7 +46,7 @@ func (srv *WxmpServer)  DiscoverApps(appPluginDir string) map[string]app.IApp {
 	}
 
 	for name, path := range appPlugins {
-		log.Println("Found App Plugin:", name)
+		log.Printf("Found App Plugin:%s under:%s", name, path)
 
 		plug, err := plugin.Open(path)
 		if err != nil {
@@ -67,7 +67,7 @@ func (srv *WxmpServer)  DiscoverApps(appPluginDir string) map[string]app.IApp {
 		}
 
 		//init app
-		if err:= app.Init(srv.Name, srv.cmdArg.EtcdUrl, srv.cmdArg.RabbitmqUrl); err != nil {
+		if err:= app.Init(srv.Name, filepath.Dir(path), srv.cmdArg.EtcdUrl, srv.cmdArg.RabbitmqUrl); err != nil {
 			log.Println("%s Error init: %s", err)
 			continue
 		}

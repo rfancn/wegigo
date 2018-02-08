@@ -7,13 +7,14 @@ import (
 )
 
 type BaseApp struct {
-	serverName string
+	Env  *AppEnv
+	Info *AppInfo
+
 	rmqManager *rabbitmq.RabbitMQManager
 	appManager *AppManager
-	Info       *AppInfo
-	//the queue to receive message from broker
-	receiveQueue string
+
 	currentApp IApp
+
 	//stop channel to indicate app stop
 	stopChannel chan int
 
@@ -25,22 +26,27 @@ func (a *BaseApp)  GetAppInfo() *AppInfo {
 	return a.Info
 }
 
-func (a *BaseApp) Initialize(serverName string, etcdUrl string, amqpUrl string, info *AppInfo, currentApp IApp) error {
-	rmqManager, err := rabbitmq.NewRabbitMQManager(amqpUrl)
+func NewAppEnv(serverName string, rootDir string, etcdUrl string, amqpUrl string) *AppEnv {
+	return &AppEnv{ServerName:serverName, RootDir:rootDir, EtcdUrl:etcdUrl, AmqpUrl:amqpUrl}
+}
+
+func (a *BaseApp) Initialize(serverName string, rootDir string, etcdUrl string, amqpUrl string, info *AppInfo, currentApp IApp) error {
+	a.Env = NewAppEnv(serverName, rootDir, etcdUrl, amqpUrl)
+
+	rmqManager, err := rabbitmq.NewRabbitMQManager(a.Env.AmqpUrl)
 	if err != nil {
 		return err
 	}
 
-	appManager, err := NewAppManager(etcdUrl)
+	appManager, err := NewAppManager(a.Env.EtcdUrl)
 	if err  != nil {
 		return err
 	}
 
-	a.serverName = serverName
+	a.Info = info
 	a.appManager = appManager
 	a.rmqManager = rmqManager
 	a.currentApp = currentApp
-	a.Info = info
 	a.stopChannel = make(chan int)
 
 	//sync Info to etcd
@@ -59,7 +65,7 @@ func (a *BaseApp) Consume(headers map[string]interface{}) {
 	}
 
 	//2. bind headers to queue
-	if !  a.rmqManager.BindQueueWithHeaders(qName, a.serverName, headers) {
+	if !  a.rmqManager.BindQueueWithHeaders(qName, a.Env.ServerName, headers) {
 		log.Fatalf("[ERROR] BaseApp Consume(): Error bind queue with headers")
 	}
 
@@ -96,7 +102,7 @@ func (a *BaseApp) Start(concurrency int) {
 	log.Println("Start app:", a.Info.Name)
 	a.status = "running"
 	//1. declare exchange
-	a.rmqManager.DeclareHeadersExchange(a.serverName)
+	a.rmqManager.DeclareHeadersExchange(a.Env.ServerName)
 
 
 	//2. build match message headers

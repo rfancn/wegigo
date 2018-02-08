@@ -20,8 +20,8 @@ type autoReplyApp struct {
 	app.BaseApp
 }
 
-func (a *autoReplyApp) Init(serverName string, etcdUrl string, amqpUrl string) error {
-	return a.BaseApp.Initialize(serverName, etcdUrl, amqpUrl, APP_INFO, a)
+func (a *autoReplyApp) 	Init(serverName string, rootDir string, etcdUrl string, amqpUrl string) error {
+	return a.BaseApp.Initialize(serverName, rootDir, etcdUrl, amqpUrl, APP_INFO, a)
 }
 
 func (a *autoReplyApp) Match(data []byte) bool{
