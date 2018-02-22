@@ -6,5 +6,4 @@ $(document).ready(function() {
     $(document).ajaxStop(function(){
         $.LoadingOverlay("hide");
     });
-
 });

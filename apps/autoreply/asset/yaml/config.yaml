@@ -2,41 +2,28 @@ html:
   - form: id="form" data-parsley-validate
     fieldset:
       - input: >
-               help-label="服务器地址(URL)" v-model="url" type=text placeholder="必须以http://或https://开头，分别支持80端口和443端口" required
-               data-parsley-trigger="focusout" data-parsley-type="url" data-parsley-pattern="^(http|https).*"
-      - input: >
-               help-label="令牌(Token)" v-model="token" type="text" placeholder="必须为英文或数字，长度为3-32字符" required
-               data-parsley-trigger="focusout" data-parsley-type="alphanum" data-parsley-length="[3,32]"
-      - input: >
-               help-label="消息加解密密钥(EncodingAESKey)" v-model="key" type="text" placeholder="消息加密密钥由43位字符组成，可随机修改，字符范围为A-Z，a-z，0-9" required
-               data-parsley-trigger="focusout" data-parsley-type="alphanum" data-parsley-length="[43,43]"
-      - radio:  help-label="消息加解密类型"
-        items:
-          - item: name="msg_encrypt_method" label="明文模式" value="clear" v-model="method"
-          - item: name="msg_encrypt_method" label="兼容模式" value="compatible" v-model="method"
-          - item: name="msg_encrypt_method" label="安全模式（推荐）" value="secure" v-model="method"
+               help-label="AutoReply Keyword" v-model="keyword" type=text placeholder="Auto reply keyword" required
+               data-parsley-trigger="focusout"
+      - textarea: help-label="Reply Message" v-model="reply" rows="3" required data-parsley-trigger="focusout"
       - button: id="btnSave" button-style="primary" text="Save"
 
 javascript:
   - inline: |
       //Wechat Media Platform config
-      var config = new Vue({
+      var vueConfig = new Vue({
           el: '#form',
           data:{
-              'url': '',
-              'token': CONFIG.Name,
-              'key':'',
-              'method': 'secure',
+              'keyword': '',
+              'reply': '',
           },
       });
 
-      function saveConfig(){
-        console.log("Save Config");
-      }
-
       $(document).ready(function(){
-        $("#btnSave").on('click', saveConfig);
-        console.log("test");
+        $( "#btnSave" ).on( "click", function() {
+          SaveAppConfig(vueConfig);
+        });
+
+        LoadAppConfig(vueConfig);
       });
 
 

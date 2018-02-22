@@ -145,4 +145,20 @@ func (srv *WxmpServer) WatchEnabledApps() {
 	srv.appManager.WatchEnabledApps(srv.stopWatch, srv.UpdateEnabledApps)
 }
 
+func (srv *WxmpServer) ReloadAppConfig(uuid string) {
+	log.Println("Reload app config:", uuid)
+	theApp, exist :=srv.apps[uuid]
+	if !exist {
+		log.Println("WxmpServer ReloadAppConfig(): Error find the app")
+		return
+	}
+
+	theApp.LoadConfig()
+}
+
+//watch app config changes
+func (srv *WxmpServer) WatchAppConfig() {
+	srv.appManager.WatchAppConfig(srv.stopWatch, srv.ReloadAppConfig)
+}
+
 

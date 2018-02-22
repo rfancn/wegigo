@@ -21,12 +21,16 @@
 
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/elazarl/go-bindata-assetfs"
+  name = "github.com/coreos/etcd"
+  version = "3.3.1"
 
 [[constraint]]
-  name = "github.com/flosch/pongo2"
+  name = "github.com/elazarl/go-bindata-assetfs"
+  version = "1.0.0"
+
+[[constraint]]
   branch = "master"
+  name = "github.com/flosch/pongo2"
 
 [[constraint]]
   name = "github.com/gorilla/websocket"
@@ -38,12 +42,20 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/justinas/alice"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/kabukky/httpscerts"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/rfancn/goy2h"
 
 [[constraint]]
   name = "github.com/spf13/cobra"
   version = "0.0.1"
 
 [[constraint]]
-  name = "github.com/spf13/viper"
-  version = "1.0.0"
+  branch = "master"
+  name = "github.com/streadway/amqp"

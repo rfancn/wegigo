@@ -10,14 +10,43 @@
 <script src="{{ VENDOR_ROOT }}/parsley.js/zh_cn.js"></script>
 <script src="{{ VENDOR_ROOT }}/alertifyjs-alertify.js/alertify.js"></script>
 <script src="{{ VENDOR_ROOT }}/jquery-loading-overlay/loadingoverlay.min.js"></script>
-<script src="{{ PKG_ROOT }}/js/app_config.js"></script>
+<script src="{{ PKG_ROOT }}/js/ajax.js"></script>
 {{ externalJs|safe }}
 <script>
-
-</script>
-<script>
 //config fetched from server side
-var CONFIG = $.parseJSON('{{ appConfig|safe }}');
+//var CONFIG = $.parseJSON('{{ appConfig|safe }}');
+var URL_CONFIG = "/wxmp/app/config/{{ appInfo.Uuid }}";
+function LoadAppConfig(vueObj) {
+    $.get(URL_CONFIG, function(data){
+        //convert all prop of returned config data to be lowercased one
+        var lowerCasedData = {};
+        for(var prop in data) {
+            lowerCasedData[prop.toLowerCase()] = data[prop]
+        }
+
+        console.log(lowerCasedData);
+
+		//set obj to the value of returned data
+        for(var key in vueObj.$data) {
+            console.log(key);
+            var lowerCasedKey = key.toLowerCase();
+            if (lowerCasedData.hasOwnProperty(lowerCasedKey)) {
+                Vue.set(vueObj, key, lowerCasedData[lowerCasedKey]);
+            }
+        }
+    });
+}
+
+function SaveAppConfig(vueObj){
+    console.log("Save Config");
+    $.post(URL_CONFIG, JSON.stringify(vueObj.$data), function(data){
+        console.log(data);
+        if (data != "success"){
+            alertify.alert("Error save app config!");
+		};
+    })
+}
+
 {{ inlineJs|safe }}
 </script>
 {% endblock %}

@@ -109,6 +109,7 @@ func Run(cmdArg *WxmpCmdArgument) {
 	srv.LoadAndRunApps()
 
 	go srv.WatchEnabledApps()
+	go srv.WatchAppConfig()
 
 	srv.SetupRouter()
 

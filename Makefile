@@ -5,7 +5,7 @@ BINARY=wegigo
 
 dev:
 	go generate
-	CGO_ENABLED=1 go build -o $(BINARY)
+	CGO_ENABLED=1 go build -ldflags -s -o $(BINARY)
 static: go_dep
 	CGO_ENABLED=0 go build -ldflags -s -o $(BINARY)
 shared: go_dep

@@ -6,7 +6,7 @@ import (
 
 const ETCD_APP_ROOT_URL = "/app"
 
-const ETCD_APP_INFO_URL =  "/app/Info"
+const ETCD_APP_INFO_URL =  "/app/info"
 const ETCD_APP_ENABLED_URL = "/app/enabled"
 const ETCD_APP_CONFIG_URL = "/app/config"
 
@@ -47,6 +47,8 @@ type IApp interface {
 	Process(data []byte) 	[]byte
 	//get own customized urls
 	GetRoutes() []*AppRoute
+
+	LoadConfig()
 }
 
 //app running Env related

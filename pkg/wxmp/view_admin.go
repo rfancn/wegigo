@@ -3,10 +3,10 @@ package wxmp
 import (
 	"net/http"
 	"log"
-	"github.com/julienschmidt/httprouter"
 	"bytes"
 	"time"
-	"encoding/json"
+	"github.com/julienschmidt/httprouter"
+	"io/ioutil"
 )
 
 func (srv *WxmpServer) ViewAdminIndex(w http.ResponseWriter, r *http.Request) {
@@ -102,9 +102,8 @@ func (srv *WxmpServer) ViewAppConfigIndex(w http.ResponseWriter, r *http.Request
 		//render template
 		context := make(map[string]interface{})
 		appInfo :=  theApp.GetAppInfo()
-		appConfig, _ := json.Marshal(appInfo)
-		context["appConfig"] = string(appConfig)
-		context["appInfo"] =appInfo
+		context["appInfo"] = appInfo
+		//context["appConfig"] = string(appConfig)
 		context["html"], context["inlineJs"], context["externalJs"] = srv.GetConfigItems(yamlContent)
 
 		srv.RespRenderFile(w, "app_config.html", context)
@@ -116,30 +115,31 @@ func (srv *WxmpServer) ViewAppConfigIndex(w http.ResponseWriter, r *http.Request
 func (srv *WxmpServer) ViewFetchAppConfig(w http.ResponseWriter, r *http.Request) {
 	appUuid := r.Context().Value("appUuid").(string)
 	log.Println("Fetch app config:", appUuid)
-	_, exist := srv.enabledApps[appUuid]
-	if !exist {
-		log.Printf("Error config app:%s as it doesn't exist or enabled\n", appUuid)
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
 
 	time.Sleep(2 * time.Second)
 
-	srv.RespJson(w, srv.appInfos[appUuid])
+	appConfig := srv.appManager.GetAppConfigBytes(appUuid)
+	srv.RespJsonBytes(w, appConfig)
 }
 
 func (srv *WxmpServer) ViewSaveAppConfig(w http.ResponseWriter, r *http.Request) {
 	appUuid := r.Context().Value("appUuid").(string)
-	log.Println("App Config:", appUuid)
-	_, exist := srv.enabledApps[appUuid]
-	if !exist {
-		log.Printf("Error config app:%s as it doesn't exist or enabled\n", appUuid)
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
+	log.Println("Save app Config:", appUuid)
 
 	time.Sleep(2 * time.Second)
 
-	srv.RespJson(w, "456")
+	// Get http body
+	configData, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Error read http body ", err)
+		srv.RespText(w, "error")
+		return
+	}
+
+	if srv.appManager.PutAppConfigBytes(appUuid, configData) {
+		srv.RespText(w, "success")
+	}else {
+		srv.RespText(w, "error")
+	}
 }
 

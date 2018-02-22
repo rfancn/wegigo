@@ -54,6 +54,9 @@ func (a *BaseApp) Initialize(serverName string, rootDir string, etcdUrl string, 
 		return errors.New("Error sync AppInfo to Etcd")
 	}
 
+	//try load config from etcd
+	a.currentApp.LoadConfig()
+
 	return nil
 }
 
@@ -142,3 +145,6 @@ func (a *BaseApp) GetConfigYaml() []byte{
 	return nil
 }
 
+func (a *BaseApp) GetConfigData() []byte{
+	return a.appManager.GetAppConfigBytes(a.Info.Uuid)
+}

@@ -137,3 +137,15 @@ func (srv *SimpleServer) RespJson(w http.ResponseWriter, response interface{}) b
 	return true
 }
 
+func (srv *SimpleServer) RespJsonBytes(w http.ResponseWriter, response []byte) bool {
+	w.Header().Set("Content-Type", "application/json")
+
+	_, err := fmt.Fprint(w, string(response))
+	if err != nil {
+		fmt.Printf("Error return json response: ", err)
+		return false
+	}
+
+	return true
+}
+
