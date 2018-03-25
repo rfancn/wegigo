@@ -3,11 +3,9 @@ package deploy
 import (
 	"net/http"
 	"log"
-	"github.com/julienschmidt/httprouter"
 	"encoding/json"
 	"html/template"
 	"os"
-	//"time"
 )
 
 
@@ -101,7 +99,7 @@ func (srv *DeployServer) saveConfigInventory(config *DeployConfig) bool {
 	return true
 }
 
-func (srv *DeployServer) ViewConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (srv *DeployServer) ViewConfig(w http.ResponseWriter, r *http.Request) {
 	log.Println("Enter ViewConfig, server status is:", srv.status)
 	srv.status = STATUS_CONFIG_STARTED
 

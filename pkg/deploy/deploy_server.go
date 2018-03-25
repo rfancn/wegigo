@@ -79,10 +79,10 @@ func Run(cmdArg *CmdArgument) {
 }
 
 func (srv *DeployServer) setupRouter() {
-	srv.AddHttpRouterHandler("get", "/", srv.ViewIndex)
-	srv.AddHttpRouterHandler("post", "/config", srv.ViewConfig)
-	srv.AddHttpRouterHandler("get", "/deploy", srv.ViewDeploy)
-	srv.AddHttpRouterHandler("get", "/run", srv.ViewRun)
+	srv.AddServerHandlerFunc("get", "/", srv.ViewIndex)
+	srv.AddServerHandlerFunc("post", "/config", srv.ViewConfig)
+	srv.AddServerHandlerFunc("get", "/deploy", srv.ViewDeploy)
+	srv.AddServerHandlerFunc("get", "/run", srv.ViewRun)
 }
 
 //restoreFromBindata: read bindata object content and save to target file

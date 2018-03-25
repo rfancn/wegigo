@@ -3,7 +3,6 @@ package deploy
 import (
 	"net/http"
 	"log"
-	"github.com/julienschmidt/httprouter"
 	"github.com/gorilla/websocket"
 )
 
@@ -12,7 +11,7 @@ func internalError(ws *websocket.Conn, msg string, err error) {
 	ws.WriteMessage(websocket.TextMessage, []byte("Internal server error."))
 }
 
-func (srv *DeployServer) ViewDeploy(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (srv *DeployServer) ViewDeploy(w http.ResponseWriter, r *http.Request) {
 	log.Println("Enter ViewDeploy, server status is:", srv.status)
 
 	/**
@@ -35,7 +34,7 @@ func (srv *DeployServer) ViewDeploy(w http.ResponseWriter, r *http.Request, ps h
 }
 
 
-func (srv *DeployServer) ViewRun(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (srv *DeployServer) ViewRun(w http.ResponseWriter, r *http.Request) {
 	log.Println("Enter ViewRun, server status is:", srv.status)
 
 	ws := newWebsocket(w, r)

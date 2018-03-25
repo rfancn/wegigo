@@ -19,6 +19,8 @@ const TOKEN = "laonabuzhai"
 //CheckSignatureMiddleware: validate the signature is correct or not
 func CheckSignatureMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Check signature")
+
 		//r.ParseForm()
 		timestamp := r.FormValue("timestamp")
 		nonce := r.FormValue("nonce")
@@ -120,7 +122,7 @@ func (srv *WxmpServer) SetupAppRoutes() {
 		appRoutes := app.GetRoutes()
 		for _, route := range appRoutes {
 			appPrefixUrl := path.Join("/", "app", uuid, route.Url)
-			srv.AddHttpHandler(
+			srv.AddServerHandler(
 				route.Method,
 				//add "/app/uuid/" as a prefix for the app route url
 				appPrefixUrl,
@@ -134,39 +136,41 @@ func (srv *WxmpServer) SetupAppRoutes() {
 
 func (srv *WxmpServer) SetupAdminRoutes() {
 	//admin urls
-	srv.AddHttpHandler("get", "/admin/",	alice.New(
+	srv.AddServerHandler("get", "/admin/",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAdminIndex)))
 
-	srv.AddHttpHandler("get", "/admin/app/",	alice.New(
+	srv.AddServerHandler("get", "/admin/app/",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppAdminIndex)))
 
 	//app enable/disable route
-	srv.AddHttpHandler("post", "/admin/app/toggle/:Uuid",	alice.New(
+	srv.AddServerHandler("post", "/admin/app/toggle/:Uuid",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppToggle)))
 
 	//add app's config url
 	//app config index url
-	srv.AddHttpHandler("get", "/admin/app/config/:Uuid",	alice.New(
+	srv.AddServerHandler("get", "/admin/app/config/:Uuid",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewAppConfigIndex)))
 
 	//fetch app config from db
-	srv.AddHttpHandler("get", "/app/config/:Uuid",	alice.New(
+	srv.AddServerHandler("get", "/app/config/:Uuid",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewFetchAppConfig)))
 	//save app config to db
-	srv.AddHttpHandler("post", "/app/config/:Uuid",	alice.New(
+	srv.AddServerHandler("post", "/app/config/:Uuid",	alice.New(
 		srv.AdminDefaultMiddleware).Then(http.HandlerFunc(srv.ViewSaveAppConfig)))
 }
 
 func (srv *WxmpServer) SetupRouter() {
 	log.Println("Setup router")
 
+	srv.AddHandlerFunc("get", "/", srv.ViewVerifyWxmpServer)
+
 	//handle wxmp server verification request
-	srv.AddHttpHandler("get", "/",
+	srv.AddServerHandler("get", "/",
 		alice.New(CheckSignatureMiddleware).Then(http.HandlerFunc(srv.ViewVerifyWxmpServer)))
 
 	//handle wxmp server post request, request follow below logic flow:
 	//1. WxmpRequestMiddleware:  HttpRequest -> WxmpRequest
-	srv.AddHttpHandler("post", "/", alice.New(
+	srv.AddServerHandler("post", "/", alice.New(
 		CheckSignatureMiddleware,
 		srv.MsgHeaderMiddleware).Then(http.HandlerFunc(srv.ViewMain)))
 

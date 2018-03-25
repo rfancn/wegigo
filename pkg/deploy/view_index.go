@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"bytes"
 	"log"
-	"github.com/julienschmidt/httprouter"
 )
 
 var INSTALL_WIZARD = map[string]string {
@@ -17,7 +16,7 @@ var INSTALL_WIZARD = map[string]string {
 //yaml definition for edit server
 const DEPLOY_SERVER_MODAL_YAML = "modal_server.yaml"
 
-func (srv *DeployServer) ViewIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (srv *DeployServer) ViewIndex(w http.ResponseWriter, r *http.Request) {
 	//build context
 	context := make(map[string]interface{})
 	context["wizard"] = srv.getInstallWizard()

@@ -2,11 +2,11 @@
 
 [![Build Status](https://travis-ci.org/rfancn/wegigo.svg?branch=master)](https://travis-ci.org/rfancn/wegigo)
 
-Wegigo is a distribute application develope framework. GIGO means garbage in garbage out, Let's get garbage and output some garbage too. :)
-As we all know this is joke, Gust acturally means some kind of info, we receive some kind of info, process it and respond with another kind info, this is normally what we do in real world.
+Wegigo is a distributed application develope framework. GIGO means garbage in garbage out, Let's get garbage and output some garbage too. :)
+As we all know this is a joke, Garbage acturally means some kind of info, we receive some kind of info, process it and respond with another kind info, this is normally what we do in real world.
 Wegigo is designed to develop some application to proceed in/out messages rapidly and efficiently.
 
-As an exampke, Now wegigo intergrated with a Wechat Mediaplatform Package, I will separate to another project in the future.
+As an exampke, Now wegigo intergrated with a Wechat Mediaplatform Package, I will separate it to another project in the future.
 
 ### Concept
 
@@ -31,12 +31,16 @@ Sdk:
 - Using monodb as persistence data storage(not implemented yet)
 - Using redis/memcache to do cache stuff(not implemented yet)
 ```
-						 |--- queue -- app...app
-message-> Wegigo Server -|--- quque -- app...app
-						 |--- queue -- app...app
+
+input <-> Wegigo Framework <-> output
+                 |
+  sever dockerA... server dockerB
+                 |
+            message broker
+
 ```
 
-#### Target
+#### Advantages
 
 - scalable
 - high performance
@@ -45,21 +49,23 @@ message-> Wegigo Server -|--- quque -- app...app
 - rapid development
 - easy to deploy
 
-#### Wxmp Module Workflow
+#### Wxmp Server Workflow
+
 - For synchronized reply message
 ```
 
-							  |---> enabled appA's queue --> WxmpRequest -> appA process --|
-HttpRequest -> WxmpRequest -> |---> enabled appB's queue --> WxmpRequest -> appB process --|--> WxmpReply -> Wxmp's reply queue -> WxmpReply -> HttpResponse
-							  |--- >enabled appC's queue --> WxmpRequest -> appC process --|
+               |---> enabled appA's queue --> appA process --|
+HttpRequest -> |---> enabled appB's queue --> appB process --|--> WxmpReply -> Wxmp's reply queue -> HttpResponse
+               |--- >enabled appC's queue --> appC process --|
 ```
 
 - For asynchronized reply message
 ```
 							  |---> enabled appA's queue --> appA process --|
-HttpRequest -> WxmpRequest -> |---> enabled appB's queue --> appB process --|--> Response Success HttpResponse
+HttpRequest -> WxmpRequest -> |---> enabled appB's queue --> appB process --|--> HttpResponse
 							  |--- >enabled appC's queue --> appC process --|
 ```
+
 
 
 
