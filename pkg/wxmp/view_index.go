@@ -67,3 +67,4 @@ func (srv *WxmpServer) ViewMain(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+

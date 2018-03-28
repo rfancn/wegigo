@@ -28,7 +28,7 @@ APP_DIR ?= apps/$(APP_NAME)
 plugin:
 	# generate app plugin asset data before go build
 	go-bindata -o $(APP_DIR)/bindata.go $(APP_DIR)/asset/...
-	CGO_ENABLED=1 go build -buildmode=plugin -o $(APP_DIR)/$(APP_NAME).so $(APP_DIR)/*.go
+	CGO_ENABLED=1 go build -buildmode=plugin -ldflags -s -o $(APP_DIR)/$(APP_NAME).so $(APP_DIR)/*.go
 
 
 

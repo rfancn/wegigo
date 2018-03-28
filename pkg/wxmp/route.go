@@ -172,7 +172,9 @@ func (srv *WxmpServer) SetupRouter() {
 	//1. WxmpRequestMiddleware:  HttpRequest -> WxmpRequest
 	srv.AddServerHandler("post", "/", alice.New(
 		CheckSignatureMiddleware,
-		srv.MsgHeaderMiddleware).Then(http.HandlerFunc(srv.ViewMain)))
+		srv.MsgHeaderMiddleware,
+	).Then(http.HandlerFunc(srv.ViewMain)))
+
 
 	srv.SetupAdminRoutes()
 

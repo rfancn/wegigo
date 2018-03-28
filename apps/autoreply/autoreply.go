@@ -36,7 +36,7 @@ func (a *autoReplyApp) 	Init(serverName string, rootDir string, etcdUrl string, 
 func (a *autoReplyApp) LoadConfig() {
 	configData := a.GetConfigData()
 	if configData == nil {
-		log.Println("Error load config data from DB!")
+		log.Println("[WARN] Failed to get AutoReply config data from DB!")
 		return
 	}
 
@@ -52,6 +52,11 @@ func (a *autoReplyApp) LoadConfig() {
 
 func (a *autoReplyApp) Match(data []byte) bool{
 	wxmpRequest := wxmp.NewRequest(data)
+	if wxmpRequest == nil {
+		log.Println("[ERROR] autoReplyApp Match(): Error new WxmpRequest:%s", string(data))
+		return false
+	}
+
 	if (wxmpRequest.MsgType == "text") && (wxmpRequest.Content == a.config.Keyword) {
 		return true
 	}

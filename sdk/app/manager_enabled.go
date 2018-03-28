@@ -10,11 +10,15 @@ import (
 //key is: app Uuid, value is: app name
 func (m *AppManager) GetEnabledAppKVs() map[string]string {
 	bv := m.etcdManager.GetValue(ETCD_APP_ENABLED_URL)
+	if bv == nil {
+		log.Println("AppManager GetEnabledAppUuids(): Empty enabled apps")
+		return nil
+	}
 
 	enabledAppKVs := make(map[string]string)
 	if err := json.Unmarshal(bv, &enabledAppKVs); err != nil {
 		log.Printf("AppManager GetEnabledAppUuids(): Error unmarshal map[string]string:%v", err)
-		return enabledAppKVs
+		return nil
 	}
 
 	return enabledAppKVs
@@ -22,9 +26,15 @@ func (m *AppManager) GetEnabledAppKVs() map[string]string {
 
 //GetEnabledAppUuids: get enabled app Uuids
 func (m *AppManager) GetEnabledAppUuids() []string {
-	enabledAppKVs := m.GetEnabledAppKVs()
-
+	//create new empty enabledAppIds
 	enabledAppIds := make([]string,0)
+
+	enabledAppKVs := m.GetEnabledAppKVs()
+	// if we failed to get enabled App key/values, return empty enabledAppIds
+	if enabledAppKVs == nil {
+		return enabledAppIds
+	}
+
 	for Uuid, _ := range enabledAppKVs {
 		enabledAppIds = append(enabledAppIds, Uuid)
 	}
